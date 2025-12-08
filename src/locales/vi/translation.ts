@@ -17,7 +17,7 @@ export const translation = {
 
   // CustomerInfo
   step_2_info: "2. Thông tin khách hàng",
-  org_name: "Tên Org",
+  org_name: "Tên Công ty",
   current_package: "Gói hiện tại",
   current_balance: "Số dư ví hiện tại",
   referrer: "Người giới thiệu (Ref)",

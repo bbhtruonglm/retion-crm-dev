@@ -7,6 +7,7 @@ import PaymentOverlay from "./components/PaymentOverlay";
 import { Search } from "lucide-react";
 import { MOCK_DB } from "./constants";
 import { IOrganization, IPaymentDetails, IPaymentStep } from "./types";
+import { apiService } from "./services";
 
 /**
  * Component chính của ứng dụng
@@ -49,19 +50,11 @@ const App: React.FC = () => {
     SetLoadingUser(true);
     try {
       /** Kết quả API */
-      const RESPONSE = await fetch("/app/chatbot_user/read_me_chatbot_user", {
-        method: "POST",
-        headers: {
-          Authorization: authToken,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
-      if (RESPONSE.ok) {
-        /** Dữ liệu trả về */
-        const DATA = await RESPONSE.json();
+      const RESPONSE = await apiService.ReadCurrentUser(authToken);
+
+      if (RESPONSE.status === 200 && RESPONSE.data) {
         /** Dữ liệu người dùng */
-        const USER_DATA = DATA.data || DATA;
+        const USER_DATA = RESPONSE.data.data || RESPONSE.data;
         if (USER_DATA && USER_DATA.full_name) {
           SetCurrentUser(USER_DATA.full_name);
         }
@@ -94,27 +87,25 @@ const App: React.FC = () => {
 
     try {
       /** Kết quả API */
-      const RESPONSE = await fetch("/manager/organization/read_org", {
-        method: "POST",
-        headers: {
-          Authorization: CURRENT_TOKEN,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const RESPONSE = await apiService.ReadOrganization(
+        {
           skip: 0,
           limit: 20,
           search: query,
           start_date: null,
           end_date: null,
-        }),
-      });
+        },
+        CURRENT_TOKEN
+      );
 
-      if (!RESPONSE.ok) {
-        throw new Error(t("error_server", { error: RESPONSE.statusText }));
+      if (RESPONSE.status !== 200 || RESPONSE.error) {
+        throw new Error(
+          t("error_server", { error: RESPONSE.error || "Unknown error" })
+        );
       }
 
       /** Dữ liệu thô */
-      const RAW_DATA = await RESPONSE.json();
+      const RAW_DATA = RESPONSE.data;
       console.log("API Response:", RAW_DATA);
 
       /** Danh sách tổ chức */
@@ -155,6 +146,9 @@ const App: React.FC = () => {
    * Effect khởi tạo từ URL params
    */
   useEffect(() => {
+    /** Flag để tránh gọi API 2 lần */
+    let IS_MOUNTED = true;
+
     /** URL params */
     const PARAMS = new URLSearchParams(window.location.search);
     /** Org ID từ URL */
@@ -173,11 +167,11 @@ const App: React.FC = () => {
       SetToken(ACTIVE_TOKEN);
     }
 
-    if (ACTIVE_TOKEN) {
+    if (ACTIVE_TOKEN && IS_MOUNTED) {
       FetchCurrentUser(ACTIVE_TOKEN);
     }
 
-    if (ORG_ID_FROM_URL) {
+    if (ORG_ID_FROM_URL && IS_MOUNTED) {
       SetSearchQuery(ORG_ID_FROM_URL);
       PerformSearch(ORG_ID_FROM_URL);
     }
@@ -187,7 +181,11 @@ const App: React.FC = () => {
       const NEW_URL = window.location.pathname;
       window.history.replaceState({}, "", NEW_URL);
     }
-  }, []);
+
+    return () => {
+      IS_MOUNTED = false;
+    };
+  }, []); // Empty dependency array - chỉ chạy 1 lần khi mount
 
   /**
    * Polling for Transaction Status
@@ -207,23 +205,19 @@ const App: React.FC = () => {
       INTERVAL = setInterval(async () => {
         try {
           /** Kết quả API */
-          const RES = await fetch("/billing/app/transaction/check_txn", {
-            method: "POST",
-            headers: {
-              Authorization: AUTH_TOKEN,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
+          const RES = await apiService.CheckTransaction(
+            {
               org_id: CUSTOMER.orgId,
               txn_id: PAYMENT_DETAILS.content,
               bank_name: "BBH_TCB",
               version: "v2",
-            }),
-          });
+            },
+            AUTH_TOKEN
+          );
 
-          if (RES.ok) {
+          if (RES.status === 200 && RES.data) {
             /** Kết quả */
-            const RESULT = await RES.json();
+            const RESULT = RES.data;
             /** Trạng thái thành công */
             const IS_SUCCESS =
               RESULT.data === true || RESULT.data?.status === "SUCCESS";
@@ -316,7 +310,7 @@ const App: React.FC = () => {
               <input
                 type="text"
                 placeholder={t("search_placeholder")}
-                className="w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-gray-800 placeholder-gray-400"
+                className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-gray-800 placeholder-gray-400"
                 value={SEARCH_QUERY}
                 onChange={(e) => SetSearchQuery(e.target.value)}
               />
@@ -324,7 +318,7 @@ const App: React.FC = () => {
             <button
               type="submit"
               disabled={LOADING_SEARCH}
-              className="bg-blue-600 text-white px-8 py-3 rounded-md font-bold hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center min-w-[140px]"
+              className="bg-blue-600 text-white px-8 py-2 rounded-md font-bold hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center min-w-[140px]"
             >
               {LOADING_SEARCH ? (
                 <span className="animate-pulse">{t("searching")}</span>

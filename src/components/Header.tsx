@@ -23,31 +23,35 @@ const Header: React.FC<IHeaderProps> = ({
   const { t } = useTranslation();
 
   return (
-    <header className="bg-white text-white shadow-md sticky top-0 z-10">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <div className="container mx-auto px-6 h-16 flex items-center justify-between">
         {/* Left: Logo */}
-        <div className="flex items-center space-x-2 font-bold text-xl">
-          <img src={RetionLogo} alt="Retion Logo" className="h-8 w-auto" />
+        <div className="flex items-center">
+          <img src={RetionLogo} alt="Retion Logo" className="h-9 w-auto" />
         </div>
 
-        {/* Center: Title */}
-        {/* <div className="hidden md:block font-medium text-lg text-blue-100">
-          {t("header_title")}
-        </div> */}
-
         {/* Right: User Info */}
-        <div className="flex items-center space-x-2 bg-blue-800 px-3 py-1.5 rounded-full text-sm">
-          <User className="w-4 h-4 text-blue-300" />
-          <span>
-            {t("hello")}{" "}
-            {isLoadingUser ? (
-              <span className="inline-block h-4 w-24 bg-white animate-pulse rounded"></span>
-            ) : (
-              <span className="font-semibold">
-                {currentUser || CURRENT_USER}
-              </span>
-            )}
-          </span>
+        <div className="flex items-center gap-3">
+          {isLoadingUser ? (
+            <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
+              <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 rounded-lg border border-blue-100">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-sm">
+                <User className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-500 leading-none">
+                  {t("hello")}
+                </span>
+                <span className="text-sm font-semibold text-gray-800 leading-tight">
+                  {currentUser || CURRENT_USER}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

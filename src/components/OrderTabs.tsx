@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { apiService } from "../services";
 
 export interface IOrderTabsProps {
   /** Khách hàng hiện tại */
@@ -118,18 +119,14 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
 
     // 1. Read Wallet
     /** Kết quả lấy ví */
-    const WALLET_RES = await fetch("/billing/app/wallet/read_wallet", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: TOKEN },
-      body: JSON.stringify({ org_id: customer.orgId }),
-    });
+    const WALLET_RES = await apiService.ReadWallet(customer.orgId, TOKEN);
 
-    if (!WALLET_RES.ok)
+    if (WALLET_RES.status !== 200 || WALLET_RES.error)
       throw new Error(
         t("cannot_get_wallet", { defaultValue: "Không thể lấy thông tin ví." })
       );
     /** Dữ liệu ví */
-    const WALLET_DATA = await WALLET_RES.json();
+    const WALLET_DATA = WALLET_RES.data;
     /** ID ví */
     const WALLET_ID = WALLET_DATA.data?.wallet_id || WALLET_DATA.wallet_id;
     if (!WALLET_ID)
@@ -139,26 +136,28 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
 
     // 2. Create Transaction
     /** Kết quả tạo giao dịch */
-    const TXN_RES = await fetch("/billing/app/transaction/create_txn", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: TOKEN },
-      body: JSON.stringify({
+    const TXN_RES = await apiService.CreateTransaction(
+      {
         org_id: customer.orgId,
         wallet_id: WALLET_ID,
         txn_amount: amount,
         txn_payment_method: "TRANSFER",
         txn_is_issue_invoice: INVOICE_OPTION === "invoice",
-        meta: { type: "TOP_UP_WALLET" },
+        meta: {
+          type: "TOP_UP_WALLET",
+          ref: customer.alias_code || customer.user_id,
+        },
         ...(PROMO_CODE ? { voucher_code: PROMO_CODE } : {}),
-      }),
-    });
+      },
+      TOKEN
+    );
 
-    if (!TXN_RES.ok)
+    if (TXN_RES.status !== 200 || TXN_RES.error)
       throw new Error(
         t("cannot_create_txn", { defaultValue: "Không thể tạo giao dịch." })
       );
     /** Dữ liệu giao dịch */
-    const TXN_DATA = await TXN_RES.json();
+    const TXN_DATA = TXN_RES.data;
     /** Đối tượng giao dịch */
     const TXN = TXN_DATA.data || TXN_DATA;
 
