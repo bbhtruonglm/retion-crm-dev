@@ -1,0 +1,5 @@
+{
+  "name": "CRM Admin Order",
+  "description": "Internal CRM tool for sales admins to manage customer orders, top-ups, and package activation.",
+  "requestFramePermissions": []
+}
