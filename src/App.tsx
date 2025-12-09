@@ -6,7 +6,12 @@ import OrderTabs from "./components/OrderTabs";
 import PaymentOverlay from "./components/PaymentOverlay";
 import { Search } from "lucide-react";
 import { MOCK_DB } from "./constants";
-import { IOrganization, IPaymentDetails, IPaymentStep } from "./types";
+import {
+  IOrganization,
+  IBankAccount,
+  IPaymentDetails,
+  IPaymentStep,
+} from "./types";
 import { apiService } from "./services";
 import {
   Select,
@@ -364,9 +369,10 @@ const App: React.FC = () => {
     content: string,
     packageName?: string,
     autoActivate?: boolean,
-    qrCode?: string
+    qrCode?: string,
+    bankInfo?: IBankAccount
   ) => {
-    SetPaymentDetails({ amount, content, packageName, qrCode });
+    SetPaymentDetails({ amount, content, packageName, qrCode, bankInfo });
     SetPaymentStep("pending");
   };
 

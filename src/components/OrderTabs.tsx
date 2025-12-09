@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { apiService } from "../services";
 import InvoiceEditor from "./InvoiceEditor";
+import { IBankAccount } from "../types";
 
 export interface IOrderTabsProps {
   /** Khách hàng hiện tại */
@@ -22,7 +23,8 @@ export interface IOrderTabsProps {
     content: string,
     packageName?: string,
     autoActivate?: boolean,
-    qrCode?: string
+    qrCode?: string,
+    bankInfo?: IBankAccount
   ) => void;
   /** Tài khoản hiện tại */
   current_user: any;
@@ -92,7 +94,24 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
 
   /** Tổng tiền gói dịch vụ */
   const PACKAGE_TOTAL_PRICE = useMemo(() => {
-    return SELECTED_PACKAGE.price * SELECTED_DURATION.months;
+    // 30 ngày (ms)
+    const MONTH_MS = 1000 * 60 * 60 * 24 * 30;
+    let pkgDurationMonths = 1;
+
+    if (
+      SELECTED_PACKAGE.duration &&
+      SELECTED_PACKAGE.duration > 0 &&
+      SELECTED_PACKAGE.duration < 9999999999999
+    ) {
+      pkgDurationMonths = Math.round(SELECTED_PACKAGE.duration / MONTH_MS);
+      if (pkgDurationMonths < 1) pkgDurationMonths = 1;
+    }
+
+    // Tính giá mỗi tháng: Giá gói / Số tháng của gói
+    const PRICE_PER_MONTH = SELECTED_PACKAGE.price / pkgDurationMonths;
+
+    // Tổng = Giá mỗi tháng * Số tháng đã chọn
+    return Math.round(PRICE_PER_MONTH * SELECTED_DURATION.months);
   }, [SELECTED_PACKAGE, SELECTED_DURATION]);
 
   /** Số tiền cần nạp thêm */
@@ -182,39 +201,48 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
 
     const TXN_CODE = TXN.txn_code || TXN.txn_id || `Unknown-${Date.now()}`;
     let QR_STRING = "";
+    let DYNAMIC_BANK_INFO = BANK_ACCOUNTS.BBH;
 
     try {
       /** Gọi API generate QR */
       const QR_RES = await apiService.GenerateQrCode(
         {
-          org_id: customer.orgId,
-          bank_bin: BANK_ACCOUNTS.BBH.bank_bin,
-          consumer_id: BANK_ACCOUNTS.BBH.account,
-          amount: amount,
-          message: TXN_CODE,
-          version: "v2",
+          version: "v3",
           txn_id: TXN_CODE,
+          org_id: customer.orgId,
         },
         TOKEN
       );
 
       if (QR_RES.status === 200 && QR_RES.data) {
-        /** Trả về chuỗi QR data nếu thành công */
-        const QR_DATA =
-          QR_RES.data.data?.qr_code ||
-          QR_RES.data.qr_code ||
-          QR_RES.data.data ||
-          QR_RES.data;
+        const RESP_DATA = QR_RES.data.data || QR_RES.data;
 
+        /** QR DATA string */
+        const QR_DATA = RESP_DATA.qr_code;
         if (typeof QR_DATA === "string") {
           QR_STRING = QR_DATA;
+        }
+
+        /** Parse Receiver Info if available (v3) */
+        if (RESP_DATA.receiver) {
+          const { account_number, bank_name, transaction_content } =
+            RESP_DATA.receiver;
+          // Construct dynamic bank info
+          // Preserve static name/bin from BBH default or map if needed.
+          // Here we update account and bank name from response.
+          DYNAMIC_BANK_INFO = {
+            ...BANK_ACCOUNTS.BBH,
+            account: account_number || BANK_ACCOUNTS.BBH.account,
+            bank: bank_name || BANK_ACCOUNTS.BBH.bank,
+            code: transaction_content || TXN_CODE,
+          };
         }
       }
     } catch (e) {
       console.error("Failed to generate QR", e);
     }
 
-    return { code: TXN_CODE, qr: QR_STRING };
+    return { code: TXN_CODE, qr: QR_STRING, bank: DYNAMIC_BANK_INFO };
   };
 
   /**
@@ -228,11 +256,11 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
     SetIsLoading(true);
     try {
       /** Mã Code từ transaction */
-      const { code, qr } = await CreateTransaction(AMOUNT, {
+      const { code, qr, bank } = await CreateTransaction(AMOUNT, {
         type: "TOP_UP_WALLET",
       });
 
-      on_initiate_payment(AMOUNT, code, undefined, undefined, qr);
+      on_initiate_payment(AMOUNT, code, undefined, undefined, qr, bank);
     } catch (error) {
       console.error(error);
       alert(
@@ -341,18 +369,25 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
     /** Nếu không đủ tiền, tạo QR để nạp thêm */
     SetIsLoading(true);
     try {
-      /** Mã Code từ transaction */
-      const { code, qr } = await CreateTransaction(BUY_NEEDED_AMOUNT, {
-        type: "PURCHASE",
-        product: SELECTED_PACKAGE_ID.toUpperCase(),
-        quantity: SELECTED_DURATION_MONTHS,
-      });
+      /** Tạo transaction & QR */
+      const { code, qr, bank } = await CreateTransaction(
+        BUY_NEEDED_AMOUNT <= 0 ? 0 : BUY_NEEDED_AMOUNT,
+        {
+          type: "PURCHASE",
+          product: SELECTED_PACKAGE.id,
+          quantity: SELECTED_DURATION.months,
+        }
+      );
+
+      SetIsLoading(false);
+
       on_initiate_payment(
         BUY_NEEDED_AMOUNT,
         code,
         SELECTED_PACKAGE.name,
         AUTO_ACTIVATE,
-        qr
+        qr,
+        bank
       );
     } catch (error) {
       console.error(error);
@@ -539,11 +574,37 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
                     <SelectValue placeholder={t("select_package")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {MOCK_PACKAGES.map((pkg) => (
-                      <SelectItem key={pkg.id} value={pkg.id}>
-                        {pkg.name} ({FormatCurrency(pkg.price)}/{t("month")})
-                      </SelectItem>
-                    ))}
+                    {MOCK_PACKAGES.map((pkg) => {
+                      // Calculate real monthly price for display
+                      const MONTH_MS = 1000 * 60 * 60 * 24 * 30;
+                      let pkgDurationMonths = 1;
+                      if (
+                        pkg.duration &&
+                        pkg.duration > 0 &&
+                        pkg.duration < 9999999999999
+                      ) {
+                        pkgDurationMonths = Math.round(pkg.duration / MONTH_MS);
+                        if (pkgDurationMonths < 1) pkgDurationMonths = 1;
+                      }
+                      const pricePerMonth = pkg.price / pkgDurationMonths;
+
+                      // If package is exactly 12 months (yearly package), show price/year
+                      if (pkgDurationMonths === 12) {
+                        return (
+                          <SelectItem key={pkg.id} value={pkg.id}>
+                            {pkg.name} ({FormatCurrency(pkg.price)}/
+                            {t("year", { defaultValue: "năm" })})
+                          </SelectItem>
+                        );
+                      }
+
+                      return (
+                        <SelectItem key={pkg.id} value={pkg.id}>
+                          {pkg.name} ({FormatCurrency(pricePerMonth)}/
+                          {t("month")})
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

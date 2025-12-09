@@ -255,11 +255,11 @@ class ApiService {
    */
   async GenerateQrCode(
     data: {
-      org_id: string;
-      bank_bin: number;
-      consumer_id: string;
-      amount: number;
-      message: string;
+      org_id?: string;
+      bank_bin?: number;
+      consumer_id?: string;
+      amount?: number;
+      message?: string;
       version: string;
       txn_id: string;
     },

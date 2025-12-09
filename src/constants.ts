@@ -27,6 +27,8 @@ export const BANK_ACCOUNTS: Record<string, IBankAccount> = {
   },
 };
 
+export const BANK_ACCOUNTS_NAME = "VM BOTBANHANGHCM";
+
 /** Giá trị đại diện cho không giới hạn */
 const UNLIMITED_VALUE = 9999999999999;
 /** Số mili giây trong 1 tháng */

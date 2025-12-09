@@ -9,9 +9,10 @@ import {
   RotateCcw,
   Download,
   Image as ImageIcon,
+  QrCode,
 } from "lucide-react";
 import { IPaymentDetails, IPaymentStep } from "../types";
-import { CURRENT_USER } from "../constants";
+import { CURRENT_USER, BANK_ACCOUNTS, BANK_ACCOUNTS_NAME } from "../constants";
 import RetionLogo from "../assets/icons/Logo_retion_embed.png";
 import { API_CONFIG } from "../services/api.config";
 
@@ -129,14 +130,22 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
           &#8203;
         </span>
 
-        <div className="relative inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full">
+        <div className="relative inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl w-full">
           {/* --- CONTENT FOR PENDING STATE --- */}
           {step === "pending" && (
-            <div className="bg-white p-6">
-              <div className="flex flex-col md:flex-row gap-8">
-                {/* LEFT: QR Display */}
-                <div className="flex-1 flex flex-col items-center justify-center">
-                  <div className="relative w-64 h-64 p-2 bg-white rounded-lg shadow-sm">
+            <div className="bg-white">
+              <div className="flex flex-col md:flex-row min-h-[500px]">
+                {/* LEFT COLUMN: SCAN QR */}
+                <div className="md:w-5/12 bg-gray-50 border-r border-gray-100 p-8 flex flex-col items-center justify-center text-center">
+                  <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2 uppercase tracking-wide">
+                    <QrCode className="w-5 h-5 text-blue-600" />
+                    {t("scan_qr_payment", {
+                      defaultValue: "Quét mã thanh toán",
+                    })}
+                  </h3>
+
+                  {/* QR Container */}
+                  <div className="relative w-64 h-64 p-2 bg-white rounded-xl shadow-sm mb-6">
                     {/* Corners */}
                     <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-lg -mt-1 -ml-1"></div>
                     <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-lg -mt-1 -mr-1"></div>
@@ -144,7 +153,7 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-lg -mb-1 -mr-1"></div>
 
                     {/* QR Image */}
-                    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-gray-50 relative">
+                    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-white relative rounded-lg">
                       <img
                         src={`${
                           API_CONFIG.QR_SERVICE_URL ||
@@ -156,102 +165,180 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
                         className="w-full h-full object-contain mix-blend-multiply"
                       />
                       {/* Centered Logo */}
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-lg p-1 shadow-sm flex items-center justify-center">
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full p-1 shadow-md flex items-center justify-center">
                         <img
                           src={RetionLogo}
                           alt="Logo"
-                          className="w-full h-full object-contain"
+                          className="w-8 h-8 object-contain"
                         />
                       </div>
                     </div>
 
                     {/* Loading Overlay */}
                     {!details.qrCode && !details.content && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10">
+                      <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-20">
                         <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                       </div>
                     )}
                   </div>
 
-                  <p className="mt-4 text-2xl font-bold text-blue-600">
+                  <div className="text-3xl font-extrabold text-blue-600 mb-8 tracking-tight">
                     {FormatCurrency(details.amount)}
-                  </p>
+                  </div>
+
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <p>
+                      {t("use_banking_app", {
+                        defaultValue: "Sử dụng App Ngân hàng hoặc Ví điện tử",
+                      })}
+                    </p>
+                    <p>
+                      {t("to_scan_qr", {
+                        defaultValue: "để quét mã thanh toán",
+                      })}
+                    </p>
+                  </div>
                 </div>
 
-                {/* RIGHT: Instructions & Actions */}
-                <div className="flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm">
-                        <RotateCcw className="w-4 h-4" />
-                      </span>
-                      {t("payment_modal_title", { defaultValue: "Thanh toán" })}
+                {/* RIGHT COLUMN: INFO & ACTIONS */}
+                <div className="md:w-7/12 p-8 flex flex-col bg-white">
+                  <div className="flex justify-between items-start mb-6">
+                    <h3 className="text-lg font-bold text-gray-800 uppercase tracking-wide">
+                      {t("payment_info", {
+                        defaultValue: "Thông tin chuyển khoản",
+                      })}
                     </h3>
+                    <button
+                      onClick={onClose}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
 
-                    <div className="space-y-4 text-sm text-gray-600 mb-6">
-                      <div className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-600">
-                          1
-                        </span>
-                        <p>
-                          {t("step_open_app", {
-                            defaultValue:
-                              "Mở ứng dụng Ngân hàng hoặc Ví điện tử trên điện thoại.",
-                          })}
-                        </p>
+                  {/* Bank Info Box */}
+                  <div className="bg-white rounded-lg space-y-5 flex-1 overflow-y-auto max-h-[400px]">
+                    {/* Account Number */}
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <div className="text-xs text-gray-500 mb-1 font-medium uppercase">
+                        {t("account_number", { defaultValue: "Số tài khoản" })}
                       </div>
-                      <div className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-600">
-                          2
-                        </span>
-                        <p>
-                          {t("step_choose_qr", {
-                            defaultValue: "Chọn tính năng Quét QR (Scan QR).",
-                          })}
-                        </p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-600">
-                          3
-                        </span>
-                        <p>
-                          {t("step_scan_code", {
-                            defaultValue:
-                              "Quét mã QR ở bên cạnh để thanh toán.",
-                          })}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <div className="text-lg font-mono font-bold text-green-700 flex-grow tracking-wide">
+                          {details.bankInfo?.account ||
+                            BANK_ACCOUNTS.BBH.account}
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              details.bankInfo?.account ||
+                                BANK_ACCOUNTS.BBH.account
+                            );
+                            SetCopyFeedback(true);
+                            setTimeout(() => SetCopyFeedback(false), 2000);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-xs font-semibold uppercase px-2 py-1 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                        >
+                          {t("copy", { defaultValue: "Sao chép" })}
+                        </button>
                       </div>
                     </div>
 
-                    {/* Auto-check hint */}
-                    <div className="bg-blue-50 p-3 rounded-lg flex items-center gap-3 mb-6">
-                      <div className="animate-spin text-blue-500">
-                        <Loader2 className="w-5 h-5" />
+                    {/* Account Name */}
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <div className="text-xs text-gray-500 mb-1 font-medium uppercase">
+                        {t("account_name", { defaultValue: "Tên tài khoản" })}
                       </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm font-bold text-gray-800 flex-grow uppercase">
+                          {BANK_ACCOUNTS_NAME}
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(BANK_ACCOUNTS_NAME);
+                            SetCopyFeedback(true);
+                            setTimeout(() => SetCopyFeedback(false), 2000);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-xs font-semibold uppercase px-2 py-1 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                        >
+                          {t("copy", { defaultValue: "Sao chép" })}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <div className="text-xs text-gray-500 mb-1 font-medium uppercase">
+                        {t("transfer_content", { defaultValue: "Nội dung" })}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-lg font-mono font-bold text-blue-600 flex-grow tracking-wide">
+                          {details.bankInfo?.code || details.content}
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              details.bankInfo?.code || details.content
+                            );
+                            SetCopyFeedback(true);
+                            setTimeout(() => SetCopyFeedback(false), 2000);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-xs font-semibold uppercase px-2 py-1 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                        >
+                          {t("copy", { defaultValue: "Sao chép" })}
+                        </button>
+                      </div>
+                      <div className="mt-1 text-xs text-red-500 italic">
+                        *{" "}
+                        {t("content_warning", {
+                          defaultValue:
+                            "Lưu ý: Nhập chính xác nội dung chuyển khoản để được tự động kích hoạt.",
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Bank Name */}
+                    <div className="px-1">
+                      <div className="text-xs text-gray-400 mb-1 uppercase">
+                        {t("bank_name", { defaultValue: "Ngân hàng" })}
+                      </div>
+                      <div className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                        {details.bankInfo?.bank || BANK_ACCOUNTS.BBH.bank}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Status & Actions */}
+                  <div className="mt-auto pt-6 border-t border-gray-100">
+                    {/* Status */}
+                    <div className="flex items-center gap-3 mb-4 bg-blue-50 p-3 rounded-lg">
+                      <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
                       <span className="text-sm text-blue-700 font-medium">
                         {t("waiting_payment_auto", {
                           defaultValue: "Hệ thống đang chờ nhận tiền...",
                         })}
                       </span>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col gap-3">
-                    <button
-                      onClick={HandleDownloadQr}
-                      className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                    >
-                      <ImageIcon className="w-4 h-4 mr-2" />
-                      {t("save_image", { defaultValue: "Lưu ảnh QR" })}
-                    </button>
-                    <button
-                      onClick={onClose}
-                      className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      {t("cancel_transaction", {
-                        defaultValue: "Hủy giao dịch",
-                      })}
-                    </button>
+                    {/* Buttons */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        onClick={HandleDownloadQr}
+                        className="flex items-center justify-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-bold rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all hover:shadow-md"
+                      >
+                        <ImageIcon className="w-4 h-4 mr-2" />
+                        {t("save_image", { defaultValue: "Lưu ảnh QR" })}
+                      </button>
+                      <button
+                        onClick={onClose}
+                        className="flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                      >
+                        {t("cancel_transaction", {
+                          defaultValue: "Hủy giao dịch",
+                        })}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

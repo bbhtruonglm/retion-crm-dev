@@ -15,6 +15,7 @@ export interface IOrganization {
     org_avatar?: string;
     org_country?: string;
     org_currency?: string;
+    org_affiliate_id?: string;
   };
   user?: any;
 }
@@ -112,6 +113,7 @@ export interface IPaymentDetails {
   content: string;
   qrCode?: string;
   packageName?: string;
+  bankInfo?: IBankAccount;
 }
 
 export interface IBankAccount {

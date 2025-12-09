@@ -74,7 +74,7 @@ const CustomerInfo: React.FC<ICustomerInfoProps> = ({ customer }) => {
               <span className="font-bold text-2xl text-green-600">
                 {FormatCurrency(customer.balance)}
               </span>
-              <button
+              {/* <button
                 onClick={HandleRefresh}
                 className="text-gray-400 hover:text-blue-500 transition-colors"
                 title="Refresh Balance"
@@ -82,7 +82,7 @@ const CustomerInfo: React.FC<ICustomerInfoProps> = ({ customer }) => {
                 <RefreshCw
                   className={`w-4 h-4 ${IS_REFRESHING ? "animate-spin" : ""}`}
                 />
-              </button>
+              </button> */}
             </div>
           </div>
 
@@ -94,22 +94,26 @@ const CustomerInfo: React.FC<ICustomerInfoProps> = ({ customer }) => {
                 </span>
                 <span
                   className={`font-medium ${
-                    !customer.refName
+                    !customer.refName && !customer.org_info?.org_affiliate_id
                       ? "text-orange-500 italic"
                       : "text-gray-800"
                   }`}
                 >
-                  {customer.refName}
+                  {customer.org_info?.org_affiliate_id || customer.refName}
+                  {customer.org_info?.org_affiliate_name &&
+                    ` (${customer.org_info.org_affiliate_name})`}
                 </span>
               </div>
-              <div className="text-right">
+              {/* <div className="text-right">
                 <span className="text-xs text-gray-500 block mb-1">
                   {t("ref_status")}
                 </span>
                 <span className="text-xs text-gray-600">
-                  {!customer.refName ? "" : customer.refStatus}
+                  {!customer.refName && !customer.org_info?.org_affiliate_id
+                    ? ""
+                    : customer.refStatus}
                 </span>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
