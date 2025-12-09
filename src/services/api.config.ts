@@ -3,13 +3,12 @@
  */
 export const API_CONFIG = {
   /** App API URL - Dùng cho chatbot_user, conversation, etc */
-  APP_URL:
-    import.meta.env.VITE_API_APP_TARGET ||
-    "https://chatbox-service-v3.botbanhang.vn",
-  /** Manager API URL - Dùng cho billing và organization */
-  MANAGER_URL:
-    import.meta.env.VITE_API_MANAGER_TARGET ||
-    "https://chatbox-billing.botbanhang.vn",
+  APP_URL: import.meta.env.VITE_APP_URL,
+  /** Manager API URL - Dùng cho organization management */
+  MANAGER_URL: import.meta.env.VITE_MANAGER_URL,
+  /** Billing API URL - Dùng cho billing, wallet, transaction */
+  BILLING_URL:
+    import.meta.env.VITE_BILLING_URL || import.meta.env.VITE_MANAGER_URL,
 };
 
 /**

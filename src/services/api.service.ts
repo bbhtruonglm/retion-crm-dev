@@ -65,13 +65,13 @@ class ApiService {
   }
 
   /**
-   * Manager API - Read Wallet (Billing)
+   * Billing API - Read Wallet
    * @param {string} orgId - Organization ID
    * @param {string} token - Token xác thực
    * @returns {Promise<IApiResponse>}
    */
   async ReadWallet(orgId: string, token?: string): Promise<IApiResponse> {
-    return this.Request(API_CONFIG.MANAGER_URL, "/app/wallet/read_wallet", {
+    return this.Request(API_CONFIG.BILLING_URL, "/app/wallet/read_wallet", {
       method: EHttpMethod.POST,
       body: { org_id: orgId },
       token,
@@ -79,7 +79,7 @@ class ApiService {
   }
 
   /**
-   * Manager API - Create Transaction (Billing)
+   * Billing API - Create Transaction
    * @param {object} data - Dữ liệu giao dịch
    * @param {string} token - Token xác thực
    * @returns {Promise<IApiResponse>}
@@ -96,7 +96,7 @@ class ApiService {
     },
     token?: string
   ): Promise<IApiResponse> {
-    return this.Request(API_CONFIG.MANAGER_URL, "/app/transaction/create_txn", {
+    return this.Request(API_CONFIG.BILLING_URL, "/app/transaction/create_txn", {
       method: EHttpMethod.POST,
       body: data,
       token,
@@ -104,7 +104,7 @@ class ApiService {
   }
 
   /**
-   * Manager API - Check Transaction (Billing)
+   * Billing API - Check Transaction
    * @param {object} data - Dữ liệu check transaction
    * @param {string} token - Token xác thực
    * @returns {Promise<IApiResponse>}
@@ -118,7 +118,7 @@ class ApiService {
     },
     token?: string
   ): Promise<IApiResponse> {
-    return this.Request(API_CONFIG.MANAGER_URL, "/app/transaction/check_txn", {
+    return this.Request(API_CONFIG.BILLING_URL, "/app/transaction/check_txn", {
       method: EHttpMethod.POST,
       body: data,
       token,
@@ -126,7 +126,7 @@ class ApiService {
   }
 
   /**
-   * Manager API - Read Organization
+   * Billing API - Read Organization
    * @param {object} data - Dữ liệu tìm kiếm
    * @param {string} token - Token xác thực
    * @returns {Promise<IApiResponse>}
@@ -142,8 +142,42 @@ class ApiService {
     token?: string
   ): Promise<IApiResponse> {
     return this.Request(
-      API_CONFIG.MANAGER_URL,
+      API_CONFIG.BILLING_URL,
       "/manager/organization/read_org",
+      {
+        method: EHttpMethod.POST,
+        body: data,
+        token,
+      }
+    );
+  }
+
+  /**
+   * Manager API - Update Organization
+   * @param {object} data - Dữ liệu cập nhật
+   * @param {string} token - Token xác thực
+   * @returns {Promise<IApiResponse>}
+   */
+  async UpdateOrganization(
+    data: {
+      org_id: string;
+      org_info: {
+        org_name?: string;
+        org_tax_code?: string;
+        org_address?: string;
+        org_customer_code?: string;
+        org_contract_code?: string;
+        org_avatar?: string;
+        org_country?: string;
+        org_currency?: string;
+        [key: string]: any;
+      };
+    },
+    token?: string
+  ): Promise<IApiResponse> {
+    return this.Request(
+      API_CONFIG.MANAGER_URL,
+      "/app/organization/update_org",
       {
         method: EHttpMethod.POST,
         body: data,
@@ -164,6 +198,32 @@ class ApiService {
       {
         method: EHttpMethod.POST,
         body: {},
+        token,
+      }
+    );
+  }
+
+  /**
+   * Billing API - Purchase Package
+   * @param {object} data - Dữ liệu mua gói
+   * @param {string} token - Token xác thực
+   * @returns {Promise<IApiResponse>}
+   */
+  async PurchasePackage(
+    data: {
+      org_id: string;
+      wallet_id: string;
+      package_type: string;
+      months: number;
+    },
+    token?: string
+  ): Promise<IApiResponse> {
+    return this.Request(
+      API_CONFIG.BILLING_URL,
+      "/app/wallet/purchase_package",
+      {
+        method: EHttpMethod.POST,
+        body: data,
         token,
       }
     );

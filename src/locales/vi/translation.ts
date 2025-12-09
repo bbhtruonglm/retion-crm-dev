@@ -27,7 +27,7 @@ export const translation = {
   top_up: "NẠP TIỀN",
   buy_package: "MUA GÓI",
   top_up_amount: "Số tiền nạp",
-  min_max_top_up: "Min: 50.000đ - Max: 250.000.000đ",
+  min_max_top_up: "Số tiền nạp tối thiểu 50.000đ, tối đa 250.000.000đ",
   promo_code: "Mã giảm giá",
   enter_promo_code: "Nhập mã khuyến mãi...",
   invoice: "Hóa đơn",

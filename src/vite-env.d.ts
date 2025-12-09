@@ -29,8 +29,12 @@ declare module "*.webp" {
 }
 
 interface ImportMetaEnv {
-  readonly VITE_API_APP_TARGET?: string;
-  readonly VITE_API_MANAGER_TARGET?: string;
+  /** App API URL */
+  readonly VITE_APP_URL?: string;
+  /** Manager API URL */
+  readonly VITE_MANAGER_URL?: string;
+  /** Billing API URL */
+  readonly VITE_BILLING_URL?: string;
 }
 
 interface ImportMeta {

@@ -49,7 +49,7 @@ const CustomerInfo: React.FC<ICustomerInfoProps> = ({ customer }) => {
         <div className="space-y-4">
           <div className="flex flex-col">
             <span className="text-xs text-gray-500 mb-1">{t("org_name")}</span>
-            <div className="font-bold text-lg text-gray-800">
+            <div className="font-bold text-lg text-gray-800 line-clamp-2">
               {customer.name}
             </div>
           </div>

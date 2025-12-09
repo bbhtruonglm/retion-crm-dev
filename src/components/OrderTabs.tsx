@@ -11,17 +11,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiService } from "../services";
+import InvoiceEditor from "./InvoiceEditor";
 
 export interface IOrderTabsProps {
   /** Khách hàng hiện tại */
   customer: IOrganization;
   /** Hàm xử lý khởi tạo thanh toán */
-  onInitiatePayment: (
+  on_initiate_payment: (
     amount: number,
     content: string,
     packageName?: string,
     autoActivate?: boolean
   ) => void;
+  /** Tài khoản hiện tại */
+  current_user: any;
 }
 
 /**
@@ -31,10 +34,10 @@ export interface IOrderTabsProps {
  */
 const OrderTabs: React.FC<IOrderTabsProps> = ({
   customer,
-  onInitiatePayment,
+  on_initiate_payment,
+  current_user,
 }) => {
   const { t } = useTranslation();
-
   /** Tab đang active: 'topup' hoặc 'buy_package' */
   const [ACTIVE_TAB, SetActiveTab] = useState<ITabType>("topup");
 
@@ -107,9 +110,17 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
   /**
    * Tạo giao dịch mới
    * @param {number} amount - Số tiền giao dịch
+   * @param {object} meta - Metadata của giao dịch
    * @returns {Promise<string>} - Mã giao dịch
    */
-  const CreateTransaction = async (amount: number) => {
+  const CreateTransaction = async (
+    amount: number,
+    meta: {
+      type: "PURCHASE" | "INCREASE" | "TOP_UP_WALLET";
+      product?: string;
+      quantity?: number;
+    }
+  ) => {
     /** Token xác thực */
     const TOKEN = localStorage.getItem("auth_token");
     if (!TOKEN)
@@ -144,8 +155,8 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
         txn_payment_method: "TRANSFER",
         txn_is_issue_invoice: INVOICE_OPTION === "invoice",
         meta: {
-          type: "TOP_UP_WALLET",
-          ref: customer.alias_code || customer.user_id,
+          ...meta,
+          ref: current_user?.alias_code || current_user?.user_id || "UNKNOWN",
         },
         ...(PROMO_CODE ? { voucher_code: PROMO_CODE } : {}),
       },
@@ -175,8 +186,10 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
     SetIsLoading(true);
     try {
       /** Mã Code từ transaction */
-      const CODE = await CreateTransaction(AMOUNT);
-      onInitiatePayment(AMOUNT, CODE);
+      const CODE = await CreateTransaction(AMOUNT, {
+        type: "TOP_UP_WALLET",
+      });
+      on_initiate_payment(AMOUNT, CODE);
     } catch (error) {
       console.error(error);
       alert(
@@ -190,24 +203,102 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
   };
 
   /**
-   * Xử lý tạo QR mua gói
+   * Xử lý tạo QR mua gói hoặc kích hoạt gói nếu đủ tiền
    */
   const HandleCreateQrPackage = async () => {
+    /** Nếu đủ tiền, kích hoạt gói trực tiếp */
     if (BUY_NEEDED_AMOUNT <= 0) {
-      alert(
-        t("simulation_activation", {
-          defaultValue: "Số dư đủ! Đang tiến hành kích hoạt gói... (Mô phỏng)",
-        })
-      );
-      // TODO: Call API to activate package
+      SetIsLoading(true);
+      try {
+        /** Token xác thực */
+        const TOKEN = localStorage.getItem("auth_token");
+        if (!TOKEN)
+          throw new Error(
+            t("login_again", { defaultValue: "Vui lòng đăng nhập lại." })
+          );
+
+        /** Lấy thông tin ví */
+        const WALLET_RES = await apiService.ReadWallet(customer.orgId, TOKEN);
+        if (WALLET_RES.status !== 200 || WALLET_RES.error)
+          throw new Error(
+            t("cannot_get_wallet", {
+              defaultValue: "Không thể lấy thông tin ví.",
+            })
+          );
+
+        /** Dữ liệu ví */
+        const WALLET_DATA = WALLET_RES.data;
+        /** ID ví */
+        const WALLET_ID = WALLET_DATA.data?.wallet_id || WALLET_DATA.wallet_id;
+        if (!WALLET_ID)
+          throw new Error(
+            t("wallet_id_not_found", { defaultValue: "Không tìm thấy ID ví." })
+          );
+
+        /** Xác định package type - nếu chưa từng dùng thử và chọn gói PRO thì cho dùng thử */
+        const PACKAGE_TYPE = SELECTED_PACKAGE_ID.toUpperCase();
+
+        /** Gọi API mua gói */
+        const PURCHASE_RES = await apiService.PurchasePackage(
+          {
+            org_id: customer.orgId,
+            wallet_id: WALLET_ID,
+            package_type: PACKAGE_TYPE,
+            months: SELECTED_DURATION_MONTHS,
+          },
+          TOKEN
+        );
+
+        if (PURCHASE_RES.status !== 200 || PURCHASE_RES.error) {
+          /** Xử lý lỗi không đủ tiền */
+          if (PURCHASE_RES.error === "WALLET.NOT_ENOUGH_MONEY") {
+            throw new Error(
+              t("not_enough_money", {
+                defaultValue: "Số dư ví không đủ để mua gói này.",
+              })
+            );
+          }
+          throw new Error(
+            PURCHASE_RES.error ||
+              t("cannot_purchase", {
+                defaultValue: "Không thể mua gói. Vui lòng thử lại.",
+              })
+          );
+        }
+
+        /** Thông báo thành công */
+        alert(
+          t("purchase_success", {
+            defaultValue: "Mua gói thành công! Trang sẽ được tải lại.",
+          })
+        );
+
+        /** Chờ 1 giây rồi reload */
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        window.location.reload();
+      } catch (error) {
+        console.error(error);
+        alert(
+          error instanceof Error
+            ? error.message
+            : t("error_occurred", { defaultValue: "Có lỗi xảy ra" })
+        );
+      } finally {
+        SetIsLoading(false);
+      }
       return;
     }
 
+    /** Nếu không đủ tiền, tạo QR để nạp thêm */
     SetIsLoading(true);
     try {
       /** Mã Code từ transaction */
-      const CODE = await CreateTransaction(BUY_NEEDED_AMOUNT);
-      onInitiatePayment(
+      const CODE = await CreateTransaction(BUY_NEEDED_AMOUNT, {
+        type: "PURCHASE",
+        product: SELECTED_PACKAGE_ID.toUpperCase(),
+        quantity: SELECTED_DURATION_MONTHS,
+      });
+      on_initiate_payment(
         BUY_NEEDED_AMOUNT,
         CODE,
         SELECTED_PACKAGE.name,
@@ -272,32 +363,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
         </label>
       </div>
 
-      {INVOICE_OPTION === "invoice" && (
-        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 text-sm">
-          <div className="flex justify-between items-start mb-2">
-            <h4 className="font-bold text-gray-800">{t("invoice_info")}</h4>
-            <button className="text-blue-600 font-medium hover:underline text-xs">
-              {t("edit")}
-            </button>
-          </div>
-          <div className="space-y-1 text-gray-600">
-            <p>
-              <span className="font-medium">{t("name_label")}:</span>{" "}
-              {t("org_of", { defaultValue: "Tổ chức của" })} {customer.name}
-            </p>
-            <p>
-              <span className="font-medium">{t("tax_code")}:</span> ---
-            </p>
-            <p>
-              <span className="font-medium">{t("address")}:</span>{" "}
-              {t("not_updated")}
-            </p>
-          </div>
-          <p className="mt-3 text-xs text-gray-500 italic">
-            {t("invoice_disclaimer")}
-          </p>
-        </div>
-      )}
+      {INVOICE_OPTION === "invoice" && <InvoiceEditor customer={customer} />}
     </div>
   );
 

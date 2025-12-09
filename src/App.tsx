@@ -25,8 +25,8 @@ const App: React.FC = () => {
   /** Lỗi tìm kiếm */
   const [ERROR_SEARCH, SetErrorSearch] = useState("");
 
-  /** Tên người dùng hiện tại */
-  const [CURRENT_USER, SetCurrentUser] = useState<string>("");
+  /** Dữ liệu người dùng hiện tại */
+  const [CURRENT_USER, SetCurrentUser] = useState<any>(null);
   /** Trạng thái loading user */
   const [LOADING_USER, SetLoadingUser] = useState(true);
 
@@ -55,8 +55,9 @@ const App: React.FC = () => {
       if (RESPONSE.status === 200 && RESPONSE.data) {
         /** Dữ liệu người dùng */
         const USER_DATA = RESPONSE.data.data || RESPONSE.data;
-        if (USER_DATA && USER_DATA.full_name) {
-          SetCurrentUser(USER_DATA.full_name);
+        if (USER_DATA) {
+          /** Lưu toàn bộ data response */
+          SetCurrentUser(USER_DATA);
         }
       }
     } catch (error) {
@@ -118,15 +119,42 @@ const App: React.FC = () => {
         return;
       }
 
+      /** Org ID để lấy thông tin ví */
+      const ORG_ID = DATA.org_id || query;
+
+      /** Gọi API ReadWallet để lấy thông tin credit chính xác */
+      let WALLET_BALANCE = DATA.wallet?.wallet_balance ?? 0;
+      try {
+        /** Kết quả API wallet */
+        const WALLET_RESPONSE = await apiService.ReadWallet(
+          ORG_ID,
+          CURRENT_TOKEN
+        );
+        if (WALLET_RESPONSE.status === 200 && WALLET_RESPONSE.data?.data) {
+          /** Dữ liệu ví */
+          const WALLET_DATA = WALLET_RESPONSE.data.data;
+          /** Tính toán số dư từ wallet_balance và wallet_credit */
+          WALLET_BALANCE =
+            (WALLET_DATA.credit_balance ?? 0) -
+            (WALLET_DATA.extra_cost ?? 0) +
+            (WALLET_DATA.wallet_balance ?? 0);
+          console.log("Wallet Info:", WALLET_DATA);
+        }
+      } catch (walletErr) {
+        console.error("Failed to fetch wallet info:", walletErr);
+        /** Nếu lỗi, vẫn sử dụng balance từ organization data */
+      }
+
       /** Dữ liệu tổ chức */
       const ORG_DATA: IOrganization = {
         id: DATA._id || "unknown",
-        orgId: DATA.org_id || query,
+        orgId: ORG_ID,
         name: DATA.org_info?.org_name || DATA.name || "Khách hàng",
-        balance: DATA.wallet?.wallet_balance ?? 0,
+        balance: WALLET_BALANCE,
         currentPackage: DATA.org_package?.org_package_type || "Unknown",
         refName: null,
         refStatus: "Chưa có",
+        org_info: DATA.org_info,
       };
 
       SetCustomer(ORG_DATA);
@@ -294,7 +322,10 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <Header currentUser={CURRENT_USER} isLoadingUser={LOADING_USER} />
+      <Header
+        currentUser={CURRENT_USER?.full_name || ""}
+        isLoadingUser={LOADING_USER}
+      />
 
       <main className="flex-grow container mx-auto px-4 py-8 max-w-4xl">
         {/* SECTION 1: SEARCH */}
@@ -345,7 +376,8 @@ const App: React.FC = () => {
             {/* SECTION 3: TABS */}
             <OrderTabs
               customer={CUSTOMER}
-              onInitiatePayment={HandleInitiatePayment}
+              current_user={CURRENT_USER}
+              on_initiate_payment={HandleInitiatePayment}
             />
           </div>
         )}
@@ -358,7 +390,7 @@ const App: React.FC = () => {
         onClose={HandleCloseModal}
         onReset={HandleReset}
         simulateSuccessTrigger={HandleSimulationSuccess}
-        currentUser={CURRENT_USER}
+        currentUser={CURRENT_USER?.full_name || ""}
       />
     </div>
   );

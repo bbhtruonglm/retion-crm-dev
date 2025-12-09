@@ -27,7 +27,8 @@ export const translation = {
   top_up: "TOP UP",
   buy_package: "BUY PACKAGE",
   top_up_amount: "Topup Amount",
-  min_max_top_up: "Min: 50,000đ - Max: 250,000,000đ",
+  min_max_top_up:
+    "Minimum recharge amount is 50,000 VND, maximum is 250,000,000 VND",
   promo_code: "Promo Code",
   enter_promo_code: "Enter promo code...",
   invoice: "Invoice",
