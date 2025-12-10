@@ -174,6 +174,7 @@ const App: React.FC = () => {
         refStatus: "Chưa có",
         org_info: DATA.org_info,
         user: DATA.user,
+        affiliate: DATA.affiliate,
       };
 
       SetCustomer(ORG_DATA);
@@ -220,7 +221,6 @@ const App: React.FC = () => {
 
     if (ORG_ID_FROM_URL && IS_MOUNTED) {
       SetSearchQuery(ORG_ID_FROM_URL);
-      PerformSearch(ORG_ID_FROM_URL);
     }
 
     if (PARAMS.toString()) {
@@ -283,7 +283,7 @@ const App: React.FC = () => {
             }
 
             if (DEFAULT_MEMBER) {
-              SetSelectedMemberId(DEFAULT_MEMBER._id || DEFAULT_MEMBER.user_id);
+              SetSelectedMemberId(DEFAULT_MEMBER.user_id);
             }
           }
         }
@@ -349,13 +349,20 @@ const App: React.FC = () => {
   }, [PAYMENT_STEP, PAYMENT_DETAILS, CUSTOMER]);
 
   /**
-   * Xử lý submit form tìm kiếm
-   * @param {React.FormEvent} e - Sự kiện form
+   * Effect xử lý debounce tìm kiếm
    */
-  const HandleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    PerformSearch(SEARCH_QUERY);
-  };
+  useEffect(() => {
+    const TIME_OUT_ID = setTimeout(() => {
+      if (SEARCH_QUERY.trim()) {
+        PerformSearch(SEARCH_QUERY);
+      } else {
+        SetCustomer(null);
+        SetErrorSearch("");
+      }
+    }, 300);
+
+    return () => clearTimeout(TIME_OUT_ID);
+  }, [SEARCH_QUERY]);
 
   /**
    * Xử lý khởi tạo thanh toán
@@ -417,33 +424,24 @@ const App: React.FC = () => {
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">
             {t("step_1_search")}
           </h2>
-          <form
-            onSubmit={HandleSearch}
-            className="flex flex-col md:flex-row gap-4 pt-2"
-          >
-            <div className="flex-grow">
+          <div className="flex flex-col md:flex-row gap-4 pt-2">
+            <div className="flex-grow relative">
               <input
                 type="text"
                 placeholder={t("search_placeholder")}
-                className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-gray-800 placeholder-gray-400"
+                className="w-full border border-gray-300 rounded-md px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-gray-800 placeholder-gray-400"
                 value={SEARCH_QUERY}
                 onChange={(e) => SetSearchQuery(e.target.value)}
               />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                {LOADING_SEARCH ? (
+                  <span className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span>
+                ) : (
+                  <Search className="w-5 h-5 text-gray-400" />
+                )}
+              </div>
             </div>
-            <button
-              type="submit"
-              disabled={LOADING_SEARCH}
-              className="bg-blue-600 text-white px-8 py-2 rounded-md font-bold hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center min-w-[140px]"
-            >
-              {LOADING_SEARCH ? (
-                <span className="animate-pulse">{t("searching")}</span>
-              ) : (
-                <>
-                  <Search className="w-5 h-5 mr-2" /> {t("check")}
-                </>
-              )}
-            </button>
-          </form>
+          </div>
           {ERROR_SEARCH && (
             <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm font-medium rounded-md border border-red-100 flex items-center animate-pulse">
               <span className="mr-2">⚠️</span> {ERROR_SEARCH}
@@ -454,7 +452,9 @@ const App: React.FC = () => {
           {MEMBERS.length > 0 && (
             <div className="mt-6 border-t pt-4 animate-fade-in">
               <label className="block text-sm font-bold text-gray-700 mb-2">
-                {t("select_member", { defaultValue: "Chọn nhân viên/đối tác" })}
+                {t("select_member", {
+                  defaultValue: "Chọn khách hàng đại diện cho tổ chức",
+                })}
               </label>
               <div className="max-w-md">
                 <Select
@@ -464,7 +464,7 @@ const App: React.FC = () => {
                   <SelectTrigger className="w-full bg-white border-gray-300">
                     <SelectValue
                       placeholder={t("select_member", {
-                        defaultValue: "Chọn nhân viên",
+                        defaultValue: "Chọn khách hàng đại diện cho tổ chức",
                       })}
                     />
                   </SelectTrigger>
@@ -494,7 +494,7 @@ const App: React.FC = () => {
                   </SelectContent>
                 </Select>
                 <p className="mt-1 text-xs text-gray-500">
-                  * Thành viên này sẽ được ghi nhận trong giao dịch
+                  * Khách hàng này sẽ được ghi nhận trong giao dịch
                 </p>
               </div>
             </div>
@@ -505,7 +505,7 @@ const App: React.FC = () => {
         {CUSTOMER && (
           <div className="animate-slide-up space-y-8">
             {/* SECTION 2: INFO */}
-            <CustomerInfo customer={CUSTOMER} />
+            <CustomerInfo customer={CUSTOMER} currentUser={CURRENT_USER} />
 
             {/* SECTION 3: TABS */}
             <OrderTabs
@@ -526,7 +526,8 @@ const App: React.FC = () => {
         onClose={HandleCloseModal}
         onReset={HandleReset}
         simulateSuccessTrigger={HandleSimulationSuccess}
-        currentUser={CURRENT_USER?.full_name || ""}
+        currentUser={CURRENT_USER}
+        customer={CUSTOMER}
       />
     </div>
   );

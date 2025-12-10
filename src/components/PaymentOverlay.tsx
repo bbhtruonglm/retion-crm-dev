@@ -11,7 +11,7 @@ import {
   Image as ImageIcon,
   QrCode,
 } from "lucide-react";
-import { IPaymentDetails, IPaymentStep } from "../types";
+import { IPaymentDetails, IPaymentStep, IOrganization, IUser } from "../types";
 import { CURRENT_USER, BANK_ACCOUNTS, BANK_ACCOUNTS_NAME } from "../constants";
 import RetionLogo from "../assets/icons/Logo_retion_embed.png";
 import { API_CONFIG } from "../services/api.config";
@@ -28,7 +28,10 @@ export interface IPaymentOverlayProps {
   /** Hàm trigger mô phỏng thành công */
   simulateSuccessTrigger: () => void;
   /** Tên người dùng hiện tại */
-  currentUser?: string;
+  /** Tên người dùng hiện tại */
+  currentUser?: IUser | any;
+  /** Thông tin khách hàng */
+  customer?: IOrganization | null;
 }
 
 /**
@@ -43,6 +46,7 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
   onReset,
   simulateSuccessTrigger,
   currentUser,
+  customer,
 }) => {
   const { t } = useTranslation();
 
@@ -79,6 +83,53 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
   /**
    * Xử lý copy link
    */
+  /**
+   * Xử lý download QR
+   */
+  /**
+   * Lấy thông tin người giới thiệu hiển thị
+   */
+  const GetReferrerDisplay = () => {
+    if (!customer) return null;
+
+    // 1. Ưu tiên Affiliate chính thức
+    if (customer.affiliate && customer.affiliate.full_name) {
+      const ID =
+        customer.affiliate.affiliate_id ||
+        customer.affiliate.user_info?.custom_id ||
+        customer.affiliate.phone;
+      return {
+        name: customer.affiliate.full_name,
+        id: ID,
+      };
+    }
+
+    // 2. Nếu có refName (legacy)
+    if (customer.refName) {
+      return {
+        name: customer.refName,
+        id: "",
+      };
+    }
+
+    // 3. Mặc định user hiện tại (nếu chưa có ai)
+    if (currentUser) {
+      const ID =
+        currentUser.affiliate_id ||
+        currentUser.user_info?.custom_id ||
+        currentUser.phone ||
+        currentUser.user_id;
+      return {
+        name: currentUser.full_name,
+        id: ID,
+      };
+    }
+
+    return null;
+  };
+
+  const REF_INFO = GetReferrerDisplay();
+
   /**
    * Xử lý download QR
    */
@@ -394,9 +445,17 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
                         {details.packageName ? 3 : 2}
                       </span>
                       <span className="text-sm text-gray-700">
-                        {t("update_ref_msg", {
-                          user: currentUser || CURRENT_USER,
-                        })}
+                        {t("ref_current")}:{" "}
+                        <span className="font-bold">
+                          {REF_INFO ? (
+                            <>
+                              {REF_INFO.name}
+                              {REF_INFO.id && ` (${REF_INFO.id})`}
+                            </>
+                          ) : (
+                            "---"
+                          )}
+                        </span>
                       </span>
                     </div>
                   </div>

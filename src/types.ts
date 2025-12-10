@@ -1,3 +1,66 @@
+/**
+ * Interface cho User
+ */
+export interface IUser {
+  /** Mongo ID */
+  _id: string;
+  /** Facebook Staff ID */
+  fb_staff_id: string;
+  /** Version */
+  __v: number;
+  /** Affiliate ID */
+  affiliate_id: string;
+  /** Ngày tạo */
+  createdAt: string;
+  /** Tên đầy đủ */
+  full_name: string;
+  /** Là Admin */
+  is_admin: boolean;
+  /** Token đã chết */
+  is_die_token: boolean;
+  /** Được phép tải xuống */
+  is_download: boolean;
+  /** Đã xác minh */
+  is_verify: boolean;
+  /** Danh sách ID Business Manager */
+  list_fb_bm_id: string[];
+  /** Danh sách trang */
+  list_page: any[];
+  /** Vai trò */
+  role: string;
+  /** Cài đặt */
+  setting: {
+    /** Hiển thị */
+    display: {
+      /** Gán avatar */
+      assign_avatar: string;
+      /** Nhãn */
+      label: string;
+      /** ID */
+      _id: string;
+    };
+    /** Bộ lọc hội thoại tùy chỉnh */
+    custom_filter_conversation: any[];
+    /** ID */
+    _id: string;
+  };
+  /** Ngày cập nhật */
+  updatedAt: string;
+  /** User ID */
+  user_id: string;
+  /** Truy cập cuối cùng */
+  last_access: string;
+  /** Thông tin người dùng */
+  user_info: {
+    /** Custom ID */
+    custom_id: string;
+  };
+  /** Email */
+  email?: string;
+  /** Phone */
+  phone?: string;
+}
+
 export interface IOrganization {
   id: string;
   orgId: string;
@@ -17,7 +80,10 @@ export interface IOrganization {
     org_currency?: string;
     org_affiliate_id?: string;
   };
-  user?: any;
+  /** Thông tin người dùng */
+  user?: IUser;
+  /** Thông tin affiliate */
+  affiliate?: IUser;
 }
 
 /**

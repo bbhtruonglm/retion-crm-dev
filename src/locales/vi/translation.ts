@@ -87,4 +87,5 @@ export const translation = {
   update_ref_msg: "Cập nhật REF: Org này đã được gán cho bạn ({{user}})",
   new_order: "LÊN ĐƠN MỚI",
   close: "Đóng",
+  ref_current: "REF hiện tại của Tổ chức",
 };

@@ -89,4 +89,6 @@ export const translation = {
   update_ref_msg: "Ref Update: This Org has been assigned to you ({{user}})",
   new_order: "NEW ORDER",
   close: "Close",
+
+  ref_current: "Current Org's Ref",
 };

@@ -215,6 +215,7 @@ class ApiService {
       wallet_id: string;
       package_type: string;
       months: number;
+      voucher_code?: string;
     },
     token?: string
   ): Promise<IApiResponse> {
@@ -265,15 +266,32 @@ class ApiService {
     },
     token?: string
   ): Promise<IApiResponse> {
-    return this.Request(
-      "https://chatbox-api.34.142.177.104.sslip.io/v1", // Hardcoded per user request, can be moved to config later
-      "/billing/app/wallet/qr_code",
-      {
-        method: EHttpMethod.POST,
-        body: data,
-        token,
-      }
-    );
+    return this.Request(API_CONFIG.BILLING_URL, "/app/wallet/qr_code", {
+      method: EHttpMethod.POST,
+      body: data,
+      token,
+    });
+  }
+
+  /**
+   * Billing API - Verify Voucher
+   * @param {object} data - Dữ liệu verify voucher
+   * @param {string} token - Token xác thực
+   * @returns {Promise<IApiResponse>}
+   */
+  async VerifyVoucher(
+    data: {
+      org_id: string;
+      voucher_code: string;
+      txn_amount: number;
+    },
+    token?: string
+  ): Promise<IApiResponse> {
+    return this.Request(API_CONFIG.BILLING_URL, "/app/voucher/verify_voucher", {
+      method: EHttpMethod.POST,
+      body: data,
+      token,
+    });
   }
 }
 

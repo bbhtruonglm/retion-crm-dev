@@ -6,6 +6,8 @@ import { IOrganization } from "../types";
 export interface ICustomerInfoProps {
   /** Thông tin khách hàng */
   customer: IOrganization;
+  /** Người dùng hiện tại */
+  currentUser?: any;
 }
 
 /**
@@ -13,7 +15,10 @@ export interface ICustomerInfoProps {
  * @param {ICustomerInfoProps} props - Props đầu vào
  * @returns {JSX.Element} - Giao diện CustomerInfo
  */
-const CustomerInfo: React.FC<ICustomerInfoProps> = ({ customer }) => {
+const CustomerInfo: React.FC<ICustomerInfoProps> = ({
+  customer,
+  currentUser,
+}) => {
   const { t } = useTranslation();
 
   /** Trạng thái đang refresh */
@@ -37,6 +42,44 @@ const CustomerInfo: React.FC<ICustomerInfoProps> = ({ customer }) => {
       style: "currency",
       currency: "VND",
     }).format(val);
+
+  /**
+   * Lấy thông tin người giới thiệu hiển thị
+   */
+  const GetReferrerDisplay = () => {
+    // 1. Ưu tiên Affiliate chính thức
+    if (customer.affiliate && customer.affiliate.full_name) {
+      const ID =
+        customer.affiliate.affiliate_id ||
+        customer.affiliate.user_info?.custom_id ||
+        customer.affiliate.phone;
+      return {
+        name: customer.affiliate.full_name,
+        id: ID,
+        isCurrent: false,
+      };
+    }
+
+    // 2. Nếu có refName (legacy)
+    if (customer.refName) {
+      return {
+        name: customer.refName,
+        id: "",
+        isCurrent: false,
+      };
+    }
+
+    // 3. Mặc định user hiện tại -> REMOVED per user request (only update on success)
+    // if (currentUser) {
+    //   ...
+    // }
+
+    return null;
+
+    return null;
+  };
+
+  const REF_DISPLAY = GetReferrerDisplay();
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -94,26 +137,19 @@ const CustomerInfo: React.FC<ICustomerInfoProps> = ({ customer }) => {
                 </span>
                 <span
                   className={`font-medium ${
-                    !customer.refName && !customer.org_info?.org_affiliate_id
-                      ? "text-orange-500 italic"
-                      : "text-gray-800"
+                    !REF_DISPLAY ? "text-orange-500 italic" : "text-gray-800"
                   }`}
                 >
-                  {customer.org_info?.org_affiliate_id || customer.refName}
-                  {customer.org_info?.org_affiliate_name &&
-                    ` (${customer.org_info.org_affiliate_name})`}
+                  {REF_DISPLAY ? (
+                    <>
+                      {REF_DISPLAY.name}
+                      {REF_DISPLAY.id && ` (${REF_DISPLAY.id})`}
+                    </>
+                  ) : (
+                    "Chưa có"
+                  )}
                 </span>
               </div>
-              {/* <div className="text-right">
-                <span className="text-xs text-gray-500 block mb-1">
-                  {t("ref_status")}
-                </span>
-                <span className="text-xs text-gray-600">
-                  {!customer.refName && !customer.org_info?.org_affiliate_id
-                    ? ""
-                    : customer.refStatus}
-                </span>
-              </div> */}
             </div>
           </div>
         </div>
