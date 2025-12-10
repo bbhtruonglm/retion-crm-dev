@@ -227,6 +227,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
             org_id: customer.orgId,
             voucher_code: PROMO_CODE,
             txn_amount: base_amount,
+            user_id: customer.id,
           },
           TOKEN
         );
@@ -393,6 +394,19 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
    * Xử lý tạo QR nạp tiền
    */
   const HandleCreateQrTopup = async () => {
+    /** Kiểm tra nếu có mã giảm giá nhưng không hợp lệ thì chặn */
+    if (
+      PROMO_CODE.trim() &&
+      (!VERIFY_VOUCHER_RESULT || !VERIFY_VOUCHER_RESULT.is_verify)
+    ) {
+      alert(
+        t("invalid_voucher_block", {
+          defaultValue: "Mã giảm giá không hợp lệ. Vui lòng kiểm tra lại.",
+        })
+      );
+      return;
+    }
+
     /** Số tiền nạp đã parse */
     let amount = parseInt(TOPUP_AMOUNT.replace(/\D/g, ""), 10) || 0;
     if (amount <= 0) return;
@@ -427,6 +441,19 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
    * Xử lý tạo QR mua gói hoặc kích hoạt gói nếu đủ tiền
    */
   const HandleCreateQrPackage = async () => {
+    /** Kiểm tra nếu có mã giảm giá nhưng không hợp lệ thì chặn */
+    if (
+      PROMO_CODE.trim() &&
+      (!VERIFY_VOUCHER_RESULT || !VERIFY_VOUCHER_RESULT.is_verify)
+    ) {
+      alert(
+        t("invalid_voucher_block", {
+          defaultValue: "Mã giảm giá không hợp lệ. Vui lòng kiểm tra lại.",
+        })
+      );
+      return;
+    }
+
     /** Nếu đủ tiền, kích hoạt gói trực tiếp */
     if (BUY_NEEDED_AMOUNT <= 0) {
       SetIsLoading(true);
@@ -719,11 +746,19 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
             <div className="mt-auto">
               <button
                 onClick={HandleCreateQrTopup}
-                disabled={IS_LOADING}
-                className={`w-full py-4 text-white text-lg font-bold rounded-md shadow hover:shadow-lg transition-all flex items-center justify-center ${
-                  IS_LOADING
+                disabled={
+                  IS_LOADING ||
+                  (!!PROMO_CODE.trim() &&
+                    (!VERIFY_VOUCHER_RESULT ||
+                      !VERIFY_VOUCHER_RESULT.is_verify))
+                }
+                className={`w-full py-4 text-white text-lg font-bold rounded-md shadow transition-all flex items-center justify-center ${
+                  IS_LOADING ||
+                  (!!PROMO_CODE.trim() &&
+                    (!VERIFY_VOUCHER_RESULT ||
+                      !VERIFY_VOUCHER_RESULT.is_verify))
                     ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
+                    : "bg-blue-600 hover:bg-blue-700 hover:shadow-lg"
                 }`}
               >
                 {IS_LOADING ? t("processing") : t("continue")}
@@ -929,11 +964,19 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
 
                   <button
                     onClick={HandleCreateQrPackage}
-                    disabled={IS_LOADING}
-                    className={`w-full py-4 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 ${
-                      IS_LOADING
+                    disabled={
+                      IS_LOADING ||
+                      (!!PROMO_CODE.trim() &&
+                        (!VERIFY_VOUCHER_RESULT ||
+                          !VERIFY_VOUCHER_RESULT.is_verify))
+                    }
+                    className={`w-full py-4 text-white text-lg font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${
+                      IS_LOADING ||
+                      (!!PROMO_CODE.trim() &&
+                        (!VERIFY_VOUCHER_RESULT ||
+                          !VERIFY_VOUCHER_RESULT.is_verify))
                         ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800"
+                        : "bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 hover:shadow-xl"
                     }`}
                   >
                     {IS_LOADING
@@ -946,7 +989,20 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
               ) : (
                 <button
                   onClick={HandleCreateQrPackage}
-                  className="w-full py-4 bg-green-600 text-white text-lg font-bold rounded-xl shadow-lg hover:bg-green-700 transition-all"
+                  disabled={
+                    IS_LOADING ||
+                    (!!PROMO_CODE.trim() &&
+                      (!VERIFY_VOUCHER_RESULT ||
+                        !VERIFY_VOUCHER_RESULT.is_verify))
+                  }
+                  className={`w-full py-4 text-white text-lg font-bold rounded-xl shadow-lg transition-all ${
+                    IS_LOADING ||
+                    (!!PROMO_CODE.trim() &&
+                      (!VERIFY_VOUCHER_RESULT ||
+                        !VERIFY_VOUCHER_RESULT.is_verify))
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700"
+                  }`}
                 >
                   {t("activate_now")}
                 </button>
