@@ -283,7 +283,7 @@ const App: React.FC = () => {
             }
 
             if (DEFAULT_MEMBER) {
-              SetSelectedMemberId(DEFAULT_MEMBER.user_id);
+              SetSelectedMemberId(DEFAULT_MEMBER?.user_info?.user_id);
             }
           }
         }
@@ -471,8 +471,8 @@ const App: React.FC = () => {
                   <SelectContent>
                     {MEMBERS.map((m) => (
                       <SelectItem
-                        key={m._id || m.user_id}
-                        value={m._id || m.user_id}
+                        key={m.user_info?.user_id}
+                        value={m.user_info?.user_id}
                       >
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-gray-400" />
