@@ -49,10 +49,18 @@ const CustomerInfo: React.FC<ICustomerInfoProps> = ({
   const GetReferrerDisplay = () => {
     // 1. Ưu tiên Affiliate chính thức
     if (customer.affiliate && customer.affiliate.full_name) {
+      /**
+       * Lấy ID hiển thị ưu tiên:
+       * 1. affiliate_id
+       * 2. custom_id (trong user_info)
+       * 3. Số điện thoại
+       */
       const ID =
         customer.affiliate.affiliate_id ||
         customer.affiliate.user_info?.custom_id ||
         customer.affiliate.phone;
+
+      /** Trả về object hiển thị */
       return {
         name: customer.affiliate.full_name,
         id: ID,
@@ -74,8 +82,7 @@ const CustomerInfo: React.FC<ICustomerInfoProps> = ({
     //   ...
     // }
 
-    return null;
-
+    /** Trường hợp không có referrer nào */
     return null;
   };
 

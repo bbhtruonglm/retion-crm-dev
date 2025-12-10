@@ -123,30 +123,43 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
   /** Tổng tiền gói dịch vụ */
   const PACKAGE_TOTAL_PRICE = useMemo(() => {
     // 30 ngày (ms)
+    /** 30 ngày (ms) */
     const MONTH_MS = 1000 * 60 * 60 * 24 * 30;
-    let pkgDurationMonths = 1;
+    /** Mặc định số tháng của gói là 1 */
+    let pkg_duration_months = 1;
 
+    /**
+     * Tính số tháng thực tế của gói nếu có duration (timestamp)
+     * Logic: duration / MONTH_MS
+     */
     if (
       SELECTED_PACKAGE.duration &&
       SELECTED_PACKAGE.duration > 0 &&
       SELECTED_PACKAGE.duration < 9999999999999
     ) {
-      pkgDurationMonths = Math.round(SELECTED_PACKAGE.duration / MONTH_MS);
-      if (pkgDurationMonths < 1) pkgDurationMonths = 1;
+      pkg_duration_months = Math.round(SELECTED_PACKAGE.duration / MONTH_MS);
+      if (pkg_duration_months < 1) pkg_duration_months = 1;
     }
 
-    // Tính giá mỗi tháng: Giá gói / Số tháng của gói
-    const PRICE_PER_MONTH = SELECTED_PACKAGE.price / pkgDurationMonths;
+    // Tính giá mỗi tháng: Giá gói / Số tháng của gói (để chuẩn hóa giá tháng)
+    const PRICE_PER_MONTH = SELECTED_PACKAGE.price / pkg_duration_months;
 
-    // Tổng = Giá mỗi tháng * Số tháng đã chọn
+    // Tổng = Giá mỗi tháng * Số tháng user chọn
     return Math.round(PRICE_PER_MONTH * SELECTED_DURATION.months);
   }, [SELECTED_PACKAGE, SELECTED_DURATION]);
 
-  /** Số tiền cần nạp thêm */
+  /**
+   * Số tiền cần nạp thêm
+   * Logic: (Giá phải trả - Số dư hiện tại)
+   * Nếu âm (dư tiền) thì trả về 0
+   */
   const BUY_NEEDED_AMOUNT = useMemo(() => {
+    /** Lấy giá sau khi giảm (nếu có) hoặc giá gốc */
     const PRICE =
       DISCOUNTED_AMOUNT !== null ? DISCOUNTED_AMOUNT : PACKAGE_TOTAL_PRICE;
+    /** Tính số tiền thiếu */
     const NEED = PRICE - customer.balance;
+    /** Trả về số dương hoặc 0 */
     return NEED > 0 ? NEED : 0;
   }, [PACKAGE_TOTAL_PRICE, customer.balance, DISCOUNTED_AMOUNT]);
 
@@ -187,14 +200,18 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
   useEffect(() => {
     const VerifyVoucher = async () => {
       // Determine base amount
-      let baseAmount = 0;
+      /** Xác định số tiền gốc để tính voucher */
+      let base_amount = 0;
       if (ACTIVE_TAB === "topup") {
-        baseAmount = parseInt(TOPUP_AMOUNT.replace(/\D/g, ""), 10) || 0;
+        /** Nếu tab nạp tiền: parse từ input */
+        base_amount = parseInt(TOPUP_AMOUNT.replace(/\D/g, ""), 10) || 0;
       } else {
-        baseAmount = PACKAGE_TOTAL_PRICE;
+        /** Nếu tab mua gói: dùng tổng tiền gói */
+        base_amount = PACKAGE_TOTAL_PRICE;
       }
 
-      if (!PROMO_CODE.trim() || baseAmount <= 0) {
+      /** Nếu không có mã hoặc số tiền <= 0 thì reset */
+      if (!PROMO_CODE.trim() || base_amount <= 0) {
         SetVerifyVoucherResult({});
         SetDiscountedAmount(null);
         SetVerifiedVoucherCode("");
@@ -204,27 +221,33 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
       SetIsLoading(true);
       try {
         const TOKEN = localStorage.getItem("auth_token");
+        /** Gọi API Verify Voucher */
         const RES = await apiService.VerifyVoucher(
           {
             org_id: customer.orgId,
             voucher_code: PROMO_CODE,
-            txn_amount: baseAmount,
+            txn_amount: base_amount,
           },
           TOKEN
         );
 
+        /** Xử lý kết quả trả về */
         if (RES.status === 200 && RES.data && RES.data.data) {
           const DATA = RES.data.data;
           SetVerifyVoucherResult(DATA);
 
+          /** Nếu voucher hợp lệ (is_verify = true) */
           if (DATA.is_verify) {
+            /** Cập nhật số tiền sau giảm */
             SetDiscountedAmount(DATA.txn_origin_amount);
+            /** Đánh dấu mã này đã verify thành công */
             SetVerifiedVoucherCode(PROMO_CODE);
           } else {
             SetDiscountedAmount(null);
             SetVerifiedVoucherCode("");
           }
         } else {
+          /** Nếu API lỗi hoặc voucher sai */
           SetVerifyVoucherResult({ is_verify: false });
           SetDiscountedAmount(null);
           SetVerifiedVoucherCode("");
@@ -299,9 +322,12 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
         txn_is_issue_invoice: INVOICE_OPTION === "invoice",
         meta: {
           ...meta,
+          /** Lưu người giới thiệu (ref) vào meta nếu có user đang login */
           ref: current_user?.alias_code || current_user?.user_id || "UNKNOWN",
+          /** Lưu người thực hiện actual_user_id là member được chọn */
           actual_user_id: selected_member_id,
         },
+        /** Nếu có voucher code thì gửi kèm */
         ...(PROMO_CODE ? { voucher_code: PROMO_CODE } : {}),
       },
       TOKEN
@@ -317,8 +343,8 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
     const TXN = TXN_DATA.data || TXN_DATA;
 
     const TXN_CODE = TXN.txn_code || TXN.txn_id || `Unknown-${Date.now()}`;
-    let QR_STRING = "";
-    let DYNAMIC_BANK_INFO = BANK_ACCOUNTS.BBH;
+    let qr_string = "";
+    let dynamic_bank_info = BANK_ACCOUNTS.BBH;
 
     try {
       /** Gọi API generate QR */
@@ -337,17 +363,18 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
         /** QR DATA string */
         const QR_DATA = RESP_DATA.qr_code;
         if (typeof QR_DATA === "string") {
-          QR_STRING = QR_DATA;
+          qr_string = QR_DATA;
         }
 
-        /** Parse Receiver Info if available (v3) */
+        /** Parse Receiver Info if available (v3) API trả về thông tin tài khoản đích */
         if (RESP_DATA.receiver) {
           const { account_number, bank_name, transaction_content } =
             RESP_DATA.receiver;
           // Construct dynamic bank info
           // Preserve static name/bin from BBH default or map if needed.
           // Here we update account and bank name from response.
-          DYNAMIC_BANK_INFO = {
+          /** Cập nhật thông tin ngân hàng động từ phản hồi VietQR */
+          dynamic_bank_info = {
             ...BANK_ACCOUNTS.BBH,
             account: account_number || BANK_ACCOUNTS.BBH.account,
             bank: bank_name || BANK_ACCOUNTS.BBH.bank,
@@ -359,7 +386,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
       console.error("Failed to generate QR", e);
     }
 
-    return { code: TXN_CODE, qr: QR_STRING, bank: DYNAMIC_BANK_INFO };
+    return { code: TXN_CODE, qr: qr_string, bank: dynamic_bank_info };
   };
 
   /**
@@ -367,22 +394,23 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
    */
   const HandleCreateQrTopup = async () => {
     /** Số tiền nạp đã parse */
-    let AMOUNT = parseInt(TOPUP_AMOUNT.replace(/\D/g, ""), 10) || 0;
-    if (AMOUNT <= 0) return;
+    let amount = parseInt(TOPUP_AMOUNT.replace(/\D/g, ""), 10) || 0;
+    if (amount <= 0) return;
 
     // Nếu có voucher verified, dùng số tiền đã discount
     if (DISCOUNTED_AMOUNT !== null && PROMO_CODE === VERIFIED_VOUCHER_CODE) {
-      AMOUNT = DISCOUNTED_AMOUNT;
+      amount = DISCOUNTED_AMOUNT;
     }
 
     SetIsLoading(true);
     try {
       /** Mã Code từ transaction */
-      const { code, qr, bank } = await CreateTransaction(AMOUNT, {
+      const { code, qr, bank } = await CreateTransaction(amount, {
         type: "TOP_UP_WALLET",
       });
 
-      on_initiate_payment(AMOUNT, code, undefined, undefined, qr, bank);
+      /** Gọi callback khởi tạo thanh toán để hiện overlay */
+      on_initiate_payment(amount, code, undefined, undefined, qr, bank);
     } catch (error) {
       console.error(error);
       alert(
@@ -431,7 +459,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
         /** Xác định package type - nếu chưa từng dùng thử và chọn gói PRO thì cho dùng thử */
         const PACKAGE_TYPE = SELECTED_PACKAGE_ID.toUpperCase();
 
-        /** Gọi API mua gói */
+        /** Gọi API mua gói trả phí */
         const PURCHASE_RES = await apiService.PurchasePackage(
           {
             org_id: customer.orgId,
@@ -707,7 +735,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
             {/* BUY PACKAGE CONTENT */}
 
             {/* 1. SELECTION ROW */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-bold text-gray-700">
                   {t("select_package")}

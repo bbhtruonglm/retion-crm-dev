@@ -4,7 +4,7 @@ import Header from "./components/Header";
 import CustomerInfo from "./components/CustomerInfo";
 import OrderTabs from "./components/OrderTabs";
 import PaymentOverlay from "./components/PaymentOverlay";
-import { Search } from "lucide-react";
+import { GlassesIcon, Search } from "lucide-react";
 import { MOCK_DB } from "./constants";
 import {
   IOrganization,
@@ -65,22 +65,28 @@ const App: React.FC = () => {
    * @param {string} authToken - Token xác thực
    */
   const FetchCurrentUser = async (authToken: string) => {
+    /** Bật trạng thái loading khi gọi API */
     SetLoadingUser(true);
+    /** Bắt đầu block try/catch để xử lý lỗi API */
     try {
-      /** Kết quả API */
+      /** Gọi API lấy thông tin người dùng hiện tại */
       const RESPONSE = await apiService.ReadCurrentUser(authToken);
 
+      /** Kiểm tra nếu response thành công (status 200) */
       if (RESPONSE.status === 200 && RESPONSE.data) {
-        /** Dữ liệu người dùng */
+        /** Lấy dữ liệu người dùng từ response (hỗ trợ 2 cấu trúc) */
         const USER_DATA = RESPONSE.data.data || RESPONSE.data;
+        /** Nếu có dữ liệu người dùng */
         if (USER_DATA) {
-          /** Lưu toàn bộ data response */
+          /** Lưu thông tin người dùng vào state */
           SetCurrentUser(USER_DATA);
         }
       }
     } catch (error) {
+      /** Log lỗi ra console nếu call API thất bại */
       console.error("Failed to fetch current user", error);
     } finally {
+      /** Tắt trạng thái loading bất kể thành công hay thất bại */
       SetLoadingUser(false);
     }
   };
@@ -90,22 +96,26 @@ const App: React.FC = () => {
    * @param {string} query - Org ID hoặc tên khách hàng
    */
   const PerformSearch = async (query: string) => {
+    /** Nếu query rỗng thì không làm gì */
     if (!query.trim()) return;
 
+    /** Bật loading, reset customer và error trước khi tìm kiếm mới */
     SetLoadingSearch(true);
     SetCustomer(null);
     SetErrorSearch("");
 
-    /** Token hiện tại */
+    /** Lấy token hiện tại từ state hoặc local storage */
     const CURRENT_TOKEN = TOKEN || localStorage.getItem("auth_token");
+    /** Nếu không có token thì báo lỗi và dừng */
     if (!CURRENT_TOKEN) {
       SetErrorSearch(t("error_token_missing"));
       SetLoadingSearch(false);
       return;
     }
 
+    /** Bắt đầu block try/catch xử lý tìm kiếm */
     try {
-      /** Kết quả API */
+      /** Gọi API tìm kiếm Organization */
       const RESPONSE = await apiService.ReadOrganization(
         {
           skip: 0,
@@ -117,68 +127,79 @@ const App: React.FC = () => {
         CURRENT_TOKEN
       );
 
+      /** Kiểm tra lỗi trả về từ API */
       if (RESPONSE.status !== 200 || RESPONSE.error) {
         throw new Error(
           t("error_server", { error: RESPONSE.error || "Unknown error" })
         );
       }
 
-      /** Dữ liệu thô */
+      /** Lấy dữ liệu thô từ response */
       const RAW_DATA = RESPONSE.data;
+      /** Log dữ liệu raw để debug logic */
       console.log("API Response:", RAW_DATA);
 
-      /** Danh sách tổ chức */
+      /** Lấy danh sách tổ chức từ data trả về */
       const LIST = Array.isArray(RAW_DATA.data) ? RAW_DATA.data : [];
-      /** Dữ liệu đầu tiên */
+      /** Lấy phần tử đầu tiên trong danh sách (kết quả chính xác nhất) */
       const DATA = LIST.length > 0 ? LIST[0] : null;
 
+      /** Nếu không tìm thấy data thì báo lỗi */
       if (!DATA) {
         SetErrorSearch(t("error_not_found"));
         return;
       }
 
-      /** Org ID để lấy thông tin ví */
+      /** Xác định Org ID để tham chiếu (ưu tiên từ data, fallback query) */
       const ORG_ID = DATA.org_id || query;
 
-      /** Gọi API ReadWallet để lấy thông tin credit chính xác */
-      let WALLET_BALANCE = DATA.wallet?.wallet_balance ?? 0;
+      /** Khởi tạo số dư ví mặc định từ data Organization */
+      let wallet_balance = DATA.wallet?.wallet_balance ?? 0;
+
+      /** Thử lấy thông tin Wallet chi tiết để cập nhật số dư chính xác */
       try {
-        /** Kết quả API wallet */
+        /** Gọi API lấy thông tin ví */
         const WALLET_RESPONSE = await apiService.ReadWallet(
           ORG_ID,
           CURRENT_TOKEN
         );
+        /** Nếu lấy ví thành công */
         if (WALLET_RESPONSE.status === 200 && WALLET_RESPONSE.data?.data) {
-          /** Dữ liệu ví */
+          /** Lấy dữ liệu ví */
           const WALLET_DATA = WALLET_RESPONSE.data.data;
-          /** Tính toán số dư từ wallet_balance và wallet_credit */
-          WALLET_BALANCE =
+          /**
+           * Tính toán số dư khả dụng (Logic: credit_balance - extra_cost + wallet_balance)
+           * Đây là công thức thống nhất để tính tiền có thể tiêu
+           */
+          wallet_balance =
             (WALLET_DATA.credit_balance ?? 0) -
             (WALLET_DATA.extra_cost ?? 0) +
             (WALLET_DATA.wallet_balance ?? 0);
           console.log("Wallet Info:", WALLET_DATA);
         }
       } catch (walletErr) {
+        /** Ghi log lỗi nếu lấy ví thất bại và dùng số dư mặc định */
         console.error("Failed to fetch wallet info:", walletErr);
-        /** Nếu lỗi, vẫn sử dụng balance từ organization data */
       }
 
-      /** Dữ liệu tổ chức */
+      /** Chuẩn hóa dữ liệu Organization để hiển thị UI */
       const ORG_DATA: IOrganization = {
         id: DATA._id || "unknown",
         orgId: ORG_ID,
         name: DATA.org_info?.org_name || DATA.name || "Khách hàng",
-        balance: WALLET_BALANCE,
+        balance: wallet_balance,
         currentPackage: DATA.org_package?.org_package_type || "Unknown",
-        refName: null,
+        refName: null, // Legacy ref logic
         refStatus: "Chưa có",
         org_info: DATA.org_info,
         user: DATA.user,
         affiliate: DATA.affiliate,
       };
 
+      /** Cập nhật state Customer với dữ liệu đã xử lý */
       SetCustomer(ORG_DATA);
     } catch (err) {
+      /** Xử lý lỗi chung trong quá trình tìm kiếm */
       console.error(err);
       SetErrorSearch(
         t("error_search", {
@@ -186,6 +207,7 @@ const App: React.FC = () => {
         })
       );
     } finally {
+      /** Tắt loading search */
       SetLoadingSearch(false);
     }
   };
@@ -194,45 +216,50 @@ const App: React.FC = () => {
    * Effect khởi tạo từ URL params
    */
   useEffect(() => {
-    /** Flag để tránh gọi API 2 lần */
-    let IS_MOUNTED = true;
+    /** Flag để theo dõi component mount status, tránh update state khi unmounted */
+    let is_mounted = true;
 
-    /** URL params */
+    /** Lấy URLSearchParams để parse query string */
     const PARAMS = new URLSearchParams(window.location.search);
-    /** Org ID từ URL */
+    /** Lấy giá trị org_id từ URL */
     const ORG_ID_FROM_URL = PARAMS.get("org_id");
-    /** Token từ URL */
+    /** Lấy giá trị token từ URL */
     const TOKEN_FROM_URL = PARAMS.get("token");
 
-    /** Token đang active */
-    let ACTIVE_TOKEN = localStorage.getItem("auth_token");
+    /** Lấy token đang lưu trong localStorage */
+    let active_token = localStorage.getItem("auth_token");
 
+    /** Logic ưu tiên token từ URL: nếu có thì update localStorage và dùng làm active */
     if (TOKEN_FROM_URL) {
       SetToken(TOKEN_FROM_URL);
       localStorage.setItem("auth_token", TOKEN_FROM_URL);
-      ACTIVE_TOKEN = TOKEN_FROM_URL;
-    } else if (ACTIVE_TOKEN) {
-      SetToken(ACTIVE_TOKEN);
+      active_token = TOKEN_FROM_URL;
+    } else if (active_token) {
+      /** Nếu không có URL token thì dùng token local */
+      SetToken(active_token);
     }
 
-    if (ACTIVE_TOKEN && IS_MOUNTED) {
-      FetchCurrentUser(ACTIVE_TOKEN);
+    /** Nếu có token và component còn mounted, fetch thông tin user */
+    if (active_token && is_mounted) {
+      FetchCurrentUser(active_token);
     }
 
-    if (ORG_ID_FROM_URL && IS_MOUNTED) {
+    /** Nếu có ID từ URL, set vào ô tìm kiếm để trigger Effect tìm kiếm */
+    if (ORG_ID_FROM_URL && is_mounted) {
       SetSearchQuery(ORG_ID_FROM_URL);
     }
 
+    /** Nếu URL có params, clear URL để gọn gàng */
     if (PARAMS.toString()) {
-      /** URL mới */
       const NEW_URL = window.location.pathname;
       window.history.replaceState({}, "", NEW_URL);
     }
 
+    /** Cleanup function: set flag mounted false */
     return () => {
-      IS_MOUNTED = false;
+      is_mounted = false;
     };
-  }, []); // Empty dependency array - chỉ chạy 1 lần khi mount
+  }, []); // Dependency rỗng đảm bảo chỉ chạy 1 lần khi mount
 
   /**
    * Fetch danh sách thành viên khi CUSTOMER thay đổi
@@ -246,48 +273,64 @@ const App: React.FC = () => {
 
     const FetchMembers = async () => {
       try {
+        /** Lấy token để gọi API member */
         const CURRENT_TOKEN = TOKEN || localStorage.getItem("auth_token");
+        /** Gọi API lấy danh sách thành viên */
         const RES = await apiService.ReadMembers(
           CUSTOMER.orgId,
           CURRENT_TOKEN || undefined
         );
         console.log(RES, "res");
+
+        /** Nếu API trả về thành công */
         if (RES.status === 200 && RES.data) {
+          /** Chuẩn hóa danh sách từ response */
           const LIST = RES.data.data || RES.data || [];
           if (Array.isArray(LIST)) {
+            /** Cập nhật state MEMBERS */
             SetMembers(LIST);
 
-            /** Logic chọn mặc định */
-            let DEFAULT_MEMBER = null;
-            console.log(CUSTOMER.user, "user");
-            console.log(LIST, "list");
+            /** Biến lưu trữ member mặc định được chọn */
+            let default_member = null;
+
+            /**
+             * Logic tìm member mặc định:
+             * 1. Tìm member khớp với user đang gắn với Org (nếu có)
+             */
             if (CUSTOMER.user) {
-              /** Tìm member trùng với user của org */
-              DEFAULT_MEMBER = LIST.find(
+              default_member = LIST.find(
                 (m: any) =>
                   m?.user_info?.user_id === CUSTOMER?.user?.user_id ||
                   m?.user_info?.fb_staff_id === CUSTOMER?.user?.fb_staff_id
               );
             }
-            console.log(DEFAULT_MEMBER, "default");
-            if (!DEFAULT_MEMBER) {
-              /** Tìm admin đầu tiên */
-              DEFAULT_MEMBER = LIST.find(
+
+            console.log(default_member, "default");
+
+            /**
+             * 2. Nếu không có user khớp, tìm ADMIN đầu tiên
+             */
+            if (!default_member) {
+              default_member = LIST.find(
                 (m: any) => m.role === "ADMIN" || m.is_admin
               );
             }
 
-            if (!DEFAULT_MEMBER && LIST.length > 0) {
-              // Lấy member đầu tiên
-              DEFAULT_MEMBER = LIST[0];
+            /**
+             * 3. Fallback: Nếu vẫn chưa có, lấy member đầu tiên trong danh sách
+             */
+            if (!default_member && LIST.length > 0) {
+              default_member = LIST[0];
             }
 
-            if (DEFAULT_MEMBER) {
-              SetSelectedMemberId(DEFAULT_MEMBER?.user_info?.user_id);
+            /** Nếu tìm được default member, set ID vào state để select */
+            if (default_member) {
+              SetSelectedMemberId(default_member?.user_info?.user_id);
             }
           }
         }
       } catch (error) {
+        /** Log lỗi nếu fetch member thất bại */
         console.error("Failed to fetch members", error);
       }
     };
@@ -298,21 +341,26 @@ const App: React.FC = () => {
   /**
    * Polling for Transaction Status
    */
+  /**
+   * Effect Polling: Kiểm tra trạng thái giao dịch định kỳ
+   * Chạy mỗi 2s khi đang ở trạng thái Pending
+   */
   useEffect(() => {
-    /** Interval ID */
-    let INTERVAL: NodeJS.Timeout;
-    /** Token xác thực */
+    /** Khởi tạo biến interval nội bộ */
+    let interval: NodeJS.Timeout;
     const AUTH_TOKEN = localStorage.getItem("auth_token");
 
+    /** Chỉ chạy khi đang Pending và có đủ thông tin nội dung/org */
     if (
       PAYMENT_STEP === "pending" &&
       PAYMENT_DETAILS?.content &&
       CUSTOMER?.orgId &&
       AUTH_TOKEN
     ) {
-      INTERVAL = setInterval(async () => {
+      /** Setup interval gọi API mỗi 2 giây */
+      interval = setInterval(async () => {
         try {
-          /** Kết quả API */
+          /** Gọi API check transaction trạng thái mới nhất */
           const RES = await apiService.CheckTransaction(
             {
               org_id: CUSTOMER.orgId,
@@ -323,53 +371,68 @@ const App: React.FC = () => {
             AUTH_TOKEN
           );
 
+          /** Nếu API trả về OK */
           if (RES.status === 200 && RES.data) {
-            /** Kết quả */
             const RESULT = RES.data;
-            /** Trạng thái thành công */
+            /** Kiểm tra flag thành công từ data */
             const IS_SUCCESS =
               RESULT.data === true || RESULT.data?.status === "SUCCESS";
 
+            /** Nếu giao dịch thành công */
             if (IS_SUCCESS) {
+              /** Chuyển state sang success để update UI */
               SetPaymentStep("success");
-              clearInterval(INTERVAL);
-              /** Làm mới thông tin (bao gồm ví) */
+              /** Dừng polling ngay lập tức */
+              clearInterval(interval);
+              /** Làm mới thông tin (bao gồm ví) để hiển thị số dư mới */
               PerformSearch(CUSTOMER.orgId);
             }
           }
         } catch (e) {
+          /** Log lỗi polling (không show toast để tránh spam) */
           console.error("Polling error", e);
         }
       }, 2000);
     }
 
+    /** Cleanup function: xóa interval khi unmount hoặc deps thay đổi */
     return () => {
-      if (INTERVAL) clearInterval(INTERVAL);
+      if (interval) clearInterval(interval);
     };
   }, [PAYMENT_STEP, PAYMENT_DETAILS, CUSTOMER]);
 
   /**
    * Effect xử lý debounce tìm kiếm
    */
+  /**
+   * Effect xử lý debounce tìm kiếm
+   * Giúp giảm tải request API khi user đang gõ phím liên tục
+   */
   useEffect(() => {
+    /** Set timeout 300ms sau lần gõ cuối cùng mới thực thi */
     const TIME_OUT_ID = setTimeout(() => {
+      /** Nếu ô tìm kiếm có giá trị -> Gọi API Search */
       if (SEARCH_QUERY.trim()) {
         PerformSearch(SEARCH_QUERY);
       } else {
+        /** Nếu ô tìm kiếm rỗng -> Reset data customer */
         SetCustomer(null);
         SetErrorSearch("");
       }
     }, 300);
 
+    /** Clear timeout nếu user gõ tiếp trước khi hết 300ms */
     return () => clearTimeout(TIME_OUT_ID);
   }, [SEARCH_QUERY]);
 
   /**
    * Xử lý khởi tạo thanh toán
-   * @param {number} amount - Số tiền
-   * @param {string} content - Nội dung
-   * @param {string} packageName - Tên gói (optional)
-   * @param {boolean} autoActivate - Tự động kích hoạt (optional)
+   * @param {number} amount - Số tiền cần thanh toán
+   * @param {string} content - Nội dung chuyển khoản
+   * @param {string} packageName - Tên gói dịch vụ (nếu mua gói)
+   * @param {boolean} autoActivate - Cờ tự động kích hoạt
+   * @param {string} qrCode - Chuỗi QR code (nếu có sẵn)
+   * @param {IBankAccount} bankInfo - Thông tin tài khoản ngân hàng động
    */
   const HandleInitiatePayment = (
     amount: number,
@@ -379,19 +442,22 @@ const App: React.FC = () => {
     qrCode?: string,
     bankInfo?: IBankAccount
   ) => {
+    /** Lưu toàn bộ thông tin thanh toán vào state để component Overlay sử dụng */
     SetPaymentDetails({ amount, content, packageName, qrCode, bankInfo });
+    /** Chuyển trạng thái sang Pending để hiển thị Overlay QR code */
     SetPaymentStep("pending");
   };
 
   /**
-   * Xử lý mô phỏng thành công
+   * Xử lý mô phỏng thành công (Dev mode mostly)
    */
   const HandleSimulationSuccess = () => {
+    /** Chuyển trực tiếp sang trạng thái thành công */
     SetPaymentStep("success");
   };
 
   /**
-   * Xử lý reset
+   * Xử lý reset về trạng thái ban đầu
    */
   const HandleReset = () => {
     SetPaymentStep("idle");
@@ -399,14 +465,17 @@ const App: React.FC = () => {
   };
 
   /**
-   * Xử lý đóng modal
+   * Xử lý đóng modal overlay
+   * Có confirm nếu đang trong quá trình thanh toán
    */
   const HandleCloseModal = () => {
+    /** Nếu đang pending (đang chờ quét mã), hỏi user trước khi thoát */
     if (PAYMENT_STEP === "pending") {
-      /** Xác nhận */
+      /** Xác nhận người dùng */
       const CONFIRM = window.confirm(t("confirm_cancel_pending"));
       if (!CONFIRM) return;
     }
+    /** Reset về trạng thái rảnh rỗi */
     SetPaymentStep("idle");
     SetPaymentDetails(null);
   };
@@ -431,6 +500,7 @@ const App: React.FC = () => {
                 placeholder={t("search_placeholder")}
                 className="w-full border border-gray-300 rounded-md px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-gray-800 placeholder-gray-400"
                 value={SEARCH_QUERY}
+                /** Cập nhật state tìm kiếm khi user gõ */
                 onChange={(e) => SetSearchQuery(e.target.value)}
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -441,6 +511,17 @@ const App: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {/* Button kiểm tra thủ công */}
+            <button
+              onClick={() => PerformSearch(SEARCH_QUERY)}
+              disabled={LOADING_SEARCH}
+              className="bg-blue-600 text-white px-6 py-2 flex items-center gap-2 rounded-md font-medium hover:bg-blue-700 transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed shrink-0"
+            >
+              {/* Icon kính lúp */}
+              <Search className="w-5 h-5 mr-2" />
+              {t("check", { defaultValue: "Kiểm tra" })}
+            </button>
           </div>
           {ERROR_SEARCH && (
             <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm font-medium rounded-md border border-red-100 flex items-center animate-pulse">
@@ -459,6 +540,7 @@ const App: React.FC = () => {
               <div className="max-w-md">
                 <Select
                   value={SELECTED_MEMBER_ID}
+                  /** Cập nhật state member ID khi chọn */
                   onValueChange={SetSelectedMemberId}
                 >
                   <SelectTrigger className="w-full bg-white border-gray-300">
@@ -474,9 +556,9 @@ const App: React.FC = () => {
                         key={m.user_info?.user_id}
                         value={m.user_info?.user_id}
                       >
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-gray-400" />
-                          <span className="font-medium">
+                        <span className="flex items-center gap-2 w-full">
+                          <User className="w-4 h-4 text-gray-400 shrink-0" />
+                          <span className="font-medium truncate block max-w-[200px]">
                             {m?.user_info?.full_name ||
                               m?.user_info?.user_name ||
                               m?.user_info?.name ||
@@ -484,11 +566,11 @@ const App: React.FC = () => {
                               "Unknown"}
                           </span>
                           {m.role === "ADMIN" && (
-                            <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded shrink-0">
                               Admin
                             </span>
                           )}
-                        </div>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -58,13 +58,21 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
    */
   useEffect(() => {
     /** Timer để tự động chuyển sang success */
-    let TIMER: ReturnType<typeof setTimeout>;
+    let timer: ReturnType<typeof setTimeout>;
+
+    /**
+     * Logic: Nếu đang ở trạng thái pending, đặt timer gọi simulateSuccessTrigger.
+     * Hiện tại đặt 50000000ms (~13 giờ) để coi như disable tính năng này,
+     * trừ khi logic business thay đổi cần auto-success.
+     */
     if (step === "pending") {
-      TIMER = setTimeout(() => {
+      timer = setTimeout(() => {
         simulateSuccessTrigger();
       }, 50000000); // Disable auto simulate effectively
     }
-    return () => clearTimeout(TIMER);
+
+    /** Cleanup timer khi unmount hoặc step thay đổi */
+    return () => clearTimeout(timer);
   }, [step, simulateSuccessTrigger]);
 
   if (step === "idle" || !details) return null;
@@ -93,6 +101,10 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
     if (!customer) return null;
 
     // 1. Ưu tiên Affiliate chính thức
+    /**
+     * Logic ưu tiên 1: Thông tin Affiliate gắn với Customer.
+     * Sử dụng affiliate_id hoặc custom_id hoặc phone làm ID hiển thị.
+     */
     if (customer.affiliate && customer.affiliate.full_name) {
       const ID =
         customer.affiliate.affiliate_id ||
@@ -105,6 +117,7 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
     }
 
     // 2. Nếu có refName (legacy)
+    /** Logic ưu tiên 2: Dữ liệu refName cũ lưu trực tiếp trên Customer */
     if (customer.refName) {
       return {
         name: customer.refName,
@@ -113,6 +126,10 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
     }
 
     // 3. Mặc định user hiện tại (nếu chưa có ai)
+    /**
+     * Logic ưu tiên 3: Nếu chưa có người giới thiệu,
+     * hiển thị User hiện tại đang thao tác (Sales) như người sẽ nhận hoa hồng.
+     */
     if (currentUser) {
       const ID =
         currentUser.affiliate_id ||
@@ -135,24 +152,33 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
    */
   const HandleDownloadQr = async () => {
     try {
+      /** Lấy URL base cho service QR */
       const QR_BASE_URL =
         API_CONFIG.QR_SERVICE_URL ||
         "https://api.qrserver.com/v1/create-qr-code/";
+
+      /** Tạo URL đầy đủ kèm data */
       const QR_SRC = `${QR_BASE_URL}?size=500x500&data=${encodeURIComponent(
         details.qrCode || details.content
       )}`;
 
-      const response = await fetch(QR_SRC);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      /**
+       * Fetch ảnh về dưới dạng Blob để xử lý download
+       * Việc này giúp tránh mở tab mới và force browser download file ảnh
+       */
+      const RESPONSE = await fetch(QR_SRC);
+      const BLOB = await RESPONSE.blob();
+      const URL_BLOB = URL.createObjectURL(BLOB);
 
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `QR-Payment-${details.content}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      /** Tạo thẻ a ảo để trigger event click download */
+      const LINK = document.createElement("a");
+      LINK.href = URL_BLOB;
+      LINK.download = `QR-Payment-${details.content}.png`;
+      document.body.appendChild(LINK);
+      LINK.click();
+      /** Dọn dẹp DOM và URL object sau khi xong */
+      document.body.removeChild(LINK);
+      URL.revokeObjectURL(URL_BLOB);
     } catch (e) {
       console.error("Failed to download QR", e);
       alert("Không thể tải ảnh QR. Vui lòng thử lại.");
