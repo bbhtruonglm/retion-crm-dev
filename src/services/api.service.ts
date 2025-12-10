@@ -71,7 +71,7 @@ class ApiService {
    * @returns {Promise<IApiResponse>}
    */
   async ReadWallet(orgId: string, token?: string): Promise<IApiResponse> {
-    return this.Request(API_CONFIG.BILLING_URL, "/app/wallet/read_wallet", {
+    return this.Request(API_CONFIG.BILLING_URL, "/manager/wallet/read_wallet", {
       method: EHttpMethod.POST,
       body: { org_id: orgId },
       token,
@@ -239,7 +239,7 @@ class ApiService {
   async ReadMembers(orgId: string, token?: string): Promise<IApiResponse> {
     return this.Request(
       API_CONFIG.BILLING_URL,
-      "/app/member_ship/read_member",
+      "/manager/member_ship/read_member",
       {
         method: EHttpMethod.POST,
         body: { org_id: orgId },
