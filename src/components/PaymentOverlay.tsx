@@ -103,16 +103,14 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
     // 1. Ưu tiên Affiliate chính thức
     /**
      * Logic ưu tiên 1: Thông tin Affiliate gắn với Customer.
-     * Sử dụng affiliate_id hoặc custom_id hoặc phone làm ID hiển thị.
+     * Sử dụng affiliate_id hoặc phone làm ID hiển thị.
      */
     if (customer.affiliate && customer.affiliate.full_name) {
-      const ID =
-        customer.affiliate.affiliate_id ||
-        customer.affiliate.user_info?.custom_id ||
-        customer.affiliate.phone;
+      const ID = customer.affiliate.affiliate_id || customer.affiliate.phone;
       return {
         name: customer.affiliate.full_name,
         id: ID,
+        alias_code: customer.affiliate.alias_code,
       };
     }
 
@@ -132,13 +130,11 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
      */
     if (currentUser) {
       const ID =
-        currentUser.affiliate_id ||
-        currentUser.user_info?.custom_id ||
-        currentUser.phone ||
-        currentUser.user_id;
+        currentUser.affiliate_id || currentUser.phone || currentUser.user_id;
       return {
         name: currentUser.full_name,
         id: ID,
+        alias_code: currentUser.alias_code,
       };
     }
 

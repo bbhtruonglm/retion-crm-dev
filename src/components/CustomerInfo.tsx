@@ -52,18 +52,17 @@ const CustomerInfo: React.FC<ICustomerInfoProps> = ({
       /**
        * Lấy ID hiển thị ưu tiên:
        * 1. affiliate_id
-       * 2. custom_id (trong user_info)
-       * 3. Số điện thoại
+       * 2. Số điện thoại
        */
-      const ID =
-        customer.affiliate.affiliate_id ||
-        customer.affiliate.user_info?.custom_id ||
-        customer.affiliate.phone;
+      const ID = customer.affiliate.affiliate_id || customer.affiliate.phone;
+
+      const ALIAS_CODE = customer.affiliate.alias_code;
 
       /** Trả về object hiển thị */
       return {
         name: customer.affiliate.full_name,
         id: ID,
+        alias_code: ALIAS_CODE,
         isCurrent: false,
       };
     }
@@ -73,6 +72,7 @@ const CustomerInfo: React.FC<ICustomerInfoProps> = ({
       return {
         name: customer.refName,
         id: "",
+        alias_code: "",
         isCurrent: false,
       };
     }
@@ -151,6 +151,7 @@ const CustomerInfo: React.FC<ICustomerInfoProps> = ({
                     <>
                       {REF_DISPLAY.name}
                       {REF_DISPLAY.id && ` (${REF_DISPLAY.id})`}
+                      {REF_DISPLAY.alias_code && ` (${REF_DISPLAY.alias_code})`}
                     </>
                   ) : (
                     "Chưa có"
