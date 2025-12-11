@@ -21,6 +21,8 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-i18next": "^16.4.0",
+    "react-router-dom": "6",
+    "react-toastify": "^11.0.5",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
