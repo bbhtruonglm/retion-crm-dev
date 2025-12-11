@@ -12,6 +12,7 @@ import {
   QrCode,
 } from "lucide-react";
 import { IPaymentDetails, IPaymentStep, IOrganization, IUser } from "../types";
+import { toast } from "react-toastify";
 import { CURRENT_USER, BANK_ACCOUNTS, BANK_ACCOUNTS_NAME } from "../constants";
 import RetionLogo from "../assets/icons/Logo_retion_embed.png";
 import { API_CONFIG } from "../services/api.config";
@@ -177,7 +178,7 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
       URL.revokeObjectURL(URL_BLOB);
     } catch (e) {
       console.error("Failed to download QR", e);
-      alert("Không thể tải ảnh QR. Vui lòng thử lại.");
+      toast.error("Không thể tải ảnh QR. Vui lòng thử lại.");
     }
   };
 
@@ -395,22 +396,42 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
                     </div>
 
                     {/* Buttons */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-3">
                       <button
-                        onClick={HandleDownloadQr}
-                        className="flex items-center justify-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-bold rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all hover:shadow-md"
+                        onClick={() => {
+                          const link = `${window.location.origin}/billing/${details.content}`;
+                          navigator.clipboard.writeText(link);
+                          toast.success(
+                            t("link_copied", {
+                              defaultValue: "Đã sao chép link thanh toán!",
+                            })
+                          );
+                        }}
+                        className="w-full flex items-center justify-center px-4 py-2.5 border border-blue-600 shadow-sm text-sm font-bold rounded-lg text-blue-600 bg-white hover:bg-blue-50 transition-all hover:shadow-md"
                       >
-                        <ImageIcon className="w-4 h-4 mr-2" />
-                        {t("save_image", { defaultValue: "Lưu ảnh QR" })}
-                      </button>
-                      <button
-                        onClick={onClose}
-                        className="flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                      >
-                        {t("cancel_transaction", {
-                          defaultValue: "Hủy giao dịch",
+                        <Copy className="w-4 h-4 mr-2" />
+                        {t("copy_link", {
+                          defaultValue: "Sao chép Link thanh toán",
                         })}
                       </button>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          onClick={HandleDownloadQr}
+                          className="flex items-center justify-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-bold rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all hover:shadow-md"
+                        >
+                          <ImageIcon className="w-4 h-4 mr-2" />
+                          {t("save_image", { defaultValue: "Lưu ảnh QR" })}
+                        </button>
+                        <button
+                          onClick={onClose}
+                          className="flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                        >
+                          {t("cancel_transaction", {
+                            defaultValue: "Hủy giao dịch",
+                          })}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

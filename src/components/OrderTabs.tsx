@@ -2,7 +2,15 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { IOrganization, ITabType } from "../types";
 import { MOCK_PACKAGES, MOCK_DURATIONS, BANK_ACCOUNTS } from "../constants";
-import { QrCode, Wallet, Package, Check, ClipboardCopy } from "lucide-react";
+import { toast } from "react-toastify";
+import {
+  Wallet,
+  Package,
+  Check,
+  ChevronDown,
+  Info,
+  QrCode,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -399,7 +407,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
       PROMO_CODE.trim() &&
       (!VERIFY_VOUCHER_RESULT || !VERIFY_VOUCHER_RESULT.is_verify)
     ) {
-      alert(
+      toast.error(
         t("invalid_voucher_block", {
           defaultValue: "Mã giảm giá không hợp lệ. Vui lòng kiểm tra lại.",
         })
@@ -427,7 +435,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
       on_initiate_payment(amount, code, undefined, undefined, qr, bank);
     } catch (error) {
       console.error(error);
-      alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : t("error_occurred", { defaultValue: "Có lỗi xảy ra" })
@@ -446,7 +454,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
       PROMO_CODE.trim() &&
       (!VERIFY_VOUCHER_RESULT || !VERIFY_VOUCHER_RESULT.is_verify)
     ) {
-      alert(
+      toast.error(
         t("invalid_voucher_block", {
           defaultValue: "Mã giảm giá không hợp lệ. Vui lòng kiểm tra lại.",
         })
@@ -518,7 +526,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
         }
 
         /** Thông báo thành công */
-        alert(
+        toast.success(
           t("purchase_success", {
             defaultValue: "Mua gói thành công! Trang sẽ được tải lại.",
           })
@@ -526,7 +534,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
 
         /** Chờ 1 giây rồi thông báo */
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        alert(
+        toast.success(
           t("activate_success", { defaultValue: "Kích hoạt gói thành công!" })
         );
 
@@ -535,7 +543,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
         }
       } catch (error) {
         console.error(error);
-        alert(
+        toast.error(
           error instanceof Error
             ? error.message
             : t("error_occurred", { defaultValue: "Có lỗi xảy ra" })
@@ -571,7 +579,7 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
       );
     } catch (error) {
       console.error(error);
-      alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : t("error_occurred", { defaultValue: "Có lỗi xảy ra" })

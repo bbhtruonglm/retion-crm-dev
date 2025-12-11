@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/select";
 import { User } from "lucide-react";
 
+import NotFoundPage from "./pages/NotFoundPage";
+
 /**
  * Component chính của ứng dụng
  * @returns {JSX.Element} - Giao diện App
@@ -242,6 +244,8 @@ const App: React.FC = () => {
     /** Nếu có token và component còn mounted, fetch thông tin user */
     if (active_token && is_mounted) {
       FetchCurrentUser(active_token);
+    } else if (is_mounted) {
+      SetLoadingUser(false);
     }
 
     /** Nếu có ID từ URL, set vào ô tìm kiếm để trigger Effect tìm kiếm */
@@ -479,6 +483,18 @@ const App: React.FC = () => {
     SetPaymentStep("idle");
     SetPaymentDetails(null);
   };
+
+  /** Kiểm tra quyền truy cập */
+  if (!LOADING_USER) {
+    /**
+     * Fallback cases:
+     * 1. Không có token/user (CURRENT_USER là null)
+     * 2. Có user nhưng role không phải ADMIN hoặc STAFF
+     */
+    if (!CURRENT_USER || !["ADMIN", "STAFF"].includes(CURRENT_USER.role)) {
+      return <NotFoundPage />;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">

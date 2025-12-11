@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Check, X, Loader2 } from "lucide-react";
 import { IOrganization } from "../types";
 import { apiService } from "../services";
+import { toast } from "react-toastify";
 
 export interface IInvoiceEditorProps {
   /** Thông tin khách hàng */
@@ -70,7 +71,9 @@ const InvoiceEditor: React.FC<IInvoiceEditorProps> = ({
       /** Token xác thực */
       const TOKEN = localStorage.getItem("auth_token");
       if (!TOKEN) {
-        alert(t("login_again", { defaultValue: "Vui lòng đăng nhập lại." }));
+        toast.error(
+          t("login_again", { defaultValue: "Vui lòng đăng nhập lại." })
+        );
         return;
       }
 
@@ -116,13 +119,13 @@ const InvoiceEditor: React.FC<IInvoiceEditorProps> = ({
 
         /** Đóng edit mode */
         SetIsEditing(false);
-        alert("Cập nhật thông tin hóa đơn thành công!");
+        toast.success("Cập nhật thông tin hóa đơn thành công!");
       } else {
         throw new Error(RESPONSE.error || "Không thể cập nhật thông tin");
       }
     } catch (error) {
       console.error(error);
-      alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Có lỗi xảy ra khi cập nhật thông tin"

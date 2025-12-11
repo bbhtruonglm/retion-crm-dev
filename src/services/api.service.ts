@@ -108,6 +108,45 @@ class ApiService {
   }
 
   /**
+   * Billing API - Read Transaction
+   * @param {object} data - Dữ liệu lấy giao dịch
+   * @param {string} token - Token xác thực
+   * @returns {Promise<IApiResponse>}
+   */
+  async ReadTransaction(
+    data: {
+      txn_id: string;
+      org_id?: string;
+    },
+    token?: string
+  ): Promise<IApiResponse> {
+    return this.Request(
+      API_CONFIG.BILLING_URL,
+      "/manager/transaction/read_txn",
+      {
+        method: EHttpMethod.POST,
+        body: data,
+        token,
+      }
+    );
+  }
+
+  /**
+   * Billing API - Read Public Transaction
+   * @param {string} txnId - Mã giao dịch
+   * @returns {Promise<IApiResponse>}
+   */
+  async ReadPublicTransaction(txnId: string): Promise<IApiResponse> {
+    return this.Request(
+      API_CONFIG.BILLING_URL,
+      `/public/transaction/read_txn?txn_id=${txnId}`,
+      {
+        method: EHttpMethod.GET,
+      }
+    );
+  }
+
+  /**
    * Billing API - Check Transaction
    * @param {object} data - Dữ liệu check transaction
    * @param {string} token - Token xác thực
@@ -184,7 +223,7 @@ class ApiService {
     token?: string
   ): Promise<IApiResponse> {
     return this.Request(
-      API_CONFIG.MANAGER_URL,
+      API_CONFIG.BILLING_URL,
       "/app/organization/update_org",
       {
         method: EHttpMethod.POST,
