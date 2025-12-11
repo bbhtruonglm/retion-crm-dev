@@ -10,6 +10,7 @@ import {
   Download,
   Image as ImageIcon,
   QrCode,
+  Info,
 } from "lucide-react";
 import { IPaymentDetails, IPaymentStep, IOrganization, IUser } from "../types";
 import { toast } from "react-toastify";
@@ -53,6 +54,22 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
 
   /** Trạng thái feedback copy */
   const [COPY_FEEDBACK, SetCopyFeedback] = useState(false);
+
+  /** Trạng thái hiển thị modal xác nhận hủy */
+  const [SHOW_CANCEL_CONFIRM, SetShowCancelConfirm] = useState(false);
+
+  /**
+   * Xử lý yêu cầu đóng modal
+   * Nếu đang pending -> hiện popup xác nhận
+   * Nếu không -> đóng luôn
+   */
+  const HandleAttemptClose = () => {
+    if (step === "pending") {
+      SetShowCancelConfirm(true);
+    } else {
+      onClose();
+    }
+  };
 
   /**
    * Auto-simulate success after 5 seconds if in pending state
@@ -194,7 +211,7 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
         <div
           className="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"
           aria-hidden="true"
-          onClick={step === "pending" ? onClose : undefined}
+          onClick={HandleAttemptClose}
         ></div>
 
         <span
@@ -283,7 +300,7 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
                       })}
                     </h3>
                     <button
-                      onClick={onClose}
+                      onClick={HandleAttemptClose}
                       className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
                       <X className="w-6 h-6" />
@@ -310,6 +327,11 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
                             );
                             SetCopyFeedback(true);
                             setTimeout(() => SetCopyFeedback(false), 2000);
+                            toast.success(
+                              t("copied_account_number", {
+                                defaultValue: "Đã sao chép số tài khoản!",
+                              })
+                            );
                           }}
                           className="text-blue-600 hover:text-blue-800 text-xs font-semibold uppercase px-2 py-1 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
                         >
@@ -324,7 +346,7 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
                         {t("account_name", { defaultValue: "Tên tài khoản" })}
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="text-sm font-bold text-gray-800 flex-grow uppercase">
+                        <div className="text-lg font-bold text-gray-800 flex-grow uppercase">
                           {BANK_ACCOUNTS_NAME}
                         </div>
                         <button
@@ -332,6 +354,11 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
                             navigator.clipboard.writeText(BANK_ACCOUNTS_NAME);
                             SetCopyFeedback(true);
                             setTimeout(() => SetCopyFeedback(false), 2000);
+                            toast.success(
+                              t("copied_account_name", {
+                                defaultValue: "Đã sao chép tên tài khoản!",
+                              })
+                            );
                           }}
                           className="text-blue-600 hover:text-blue-800 text-xs font-semibold uppercase px-2 py-1 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
                         >
@@ -356,6 +383,12 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
                             );
                             SetCopyFeedback(true);
                             setTimeout(() => SetCopyFeedback(false), 2000);
+                            toast.success(
+                              t("copied_content", {
+                                defaultValue:
+                                  "Đã sao chép nội dung chuyển khoản!",
+                              })
+                            );
                           }}
                           className="text-blue-600 hover:text-blue-800 text-xs font-semibold uppercase px-2 py-1 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
                         >
@@ -424,11 +457,11 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
                           {t("save_image", { defaultValue: "Lưu ảnh QR" })}
                         </button>
                         <button
-                          onClick={onClose}
+                          onClick={HandleAttemptClose}
                           className="flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
                         >
-                          {t("cancel_transaction", {
-                            defaultValue: "Hủy giao dịch",
+                          {t("close_payment_session", {
+                            defaultValue: "Đóng",
                           })}
                         </button>
                       </div>
@@ -525,6 +558,46 @@ const PaymentOverlay: React.FC<IPaymentOverlayProps> = ({
           )}
         </div>
       </div>
+      {/* Custom Confirmation Modal */}
+      {SHOW_CANCEL_CONFIRM && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Info className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                {t("confirm_close_title", {
+                  defaultValue: "Đóng cửa sổ thanh toán?",
+                })}
+              </h3>
+              <p className="text-gray-500 text-sm mb-6">
+                {t("confirm_close_msg", {
+                  defaultValue:
+                    "Giao dịch vẫn sẽ tiếp tục trên hệ thống. Đừng quên Gửi Link hoặc Mã QR cho khách hàng để họ thanh toán nhé!",
+                })}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => SetShowCancelConfirm(false)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  {t("go_back", { defaultValue: "Quay lại" })}
+                </button>
+                <button
+                  onClick={() => {
+                    SetShowCancelConfirm(false);
+                    onClose();
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                >
+                  {t("confirm_close", { defaultValue: "Đóng phiên" })}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

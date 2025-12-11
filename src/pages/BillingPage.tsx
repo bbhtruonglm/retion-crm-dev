@@ -267,17 +267,28 @@ const BillingPage: React.FC = () => {
     /** Nếu chưa có transaction thì return */
     if (!TRANSACTION) return;
     try {
-      /** Lấy nội dung QR */
-      const QR_CODE_DATA =
+      /** Lấy dữ liệu QR (ưu tiên chuỗi QR code từ server) */
+      const QR_RAW =
         TRANSACTION.qr_code || TRANSACTION.txn_code || TRANSACTION.txn_id;
-      /** URL tạo QR */
-      const QR_BASE_URL =
-        API_CONFIG.QR_SERVICE_URL ||
-        "https://api.qrserver.com/v1/create-qr-code/";
-      /** Src ảnh đầy đủ */
-      const QR_SRC = `${QR_BASE_URL}?size=500x500&data=${encodeURIComponent(
-        QR_CODE_DATA
-      )}`;
+
+      /** Kiểm tra nếu chuỗi là URL ảnh */
+      const IS_URL = /^(http|https|data:image)/.test(QR_RAW);
+
+      /** URL ảnh QR để tải về */
+      let QR_SRC = "";
+
+      if (IS_URL) {
+        /** Nếu là URL/Base64, dùng trực tiếp */
+        QR_SRC = QR_RAW;
+      } else {
+        /** Nếu là text data, dùng service tạo QR */
+        const QR_BASE_URL =
+          API_CONFIG.QR_SERVICE_URL ||
+          "https://api.qrserver.com/v1/create-qr-code/";
+        QR_SRC = `${QR_BASE_URL}?size=500x500&data=${encodeURIComponent(
+          QR_RAW
+        )}`;
+      }
 
       /** Fetch ảnh */
       const RESPONSE = await fetch(QR_SRC);
@@ -353,6 +364,18 @@ const BillingPage: React.FC = () => {
   /** Thông tin bank */
   const BANK_INFO = TRANSACTION.bank_info || BANK_ACCOUNTS.BBH;
 
+  /** Dữ liệu raw cho QR code */
+  const QR_RAW_VAL = TRANSACTION.qr_code || CONTENT;
+  /** Kiểm tra xem là URL hay data string */
+  const IS_QR_URL = /^(http|https|data:image)/.test(QR_RAW_VAL);
+  /** URL hiển thị QR code */
+  const QR_DISPLAY_SRC = IS_QR_URL
+    ? QR_RAW_VAL
+    : `${
+        API_CONFIG.QR_SERVICE_URL ||
+        "https://api.qrserver.com/v1/create-qr-code/"
+      }?size=300x300&data=${encodeURIComponent(QR_RAW_VAL)}`;
+
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
       <div className="mb-8">
@@ -378,10 +401,7 @@ const BillingPage: React.FC = () => {
             <div className="relative w-64 h-64 p-2 bg-white rounded-xl shadow-sm mb-6">
               {/* QR Image */}
               <img
-                src={`${
-                  API_CONFIG.QR_SERVICE_URL ||
-                  "https://api.qrserver.com/v1/create-qr-code/"
-                }?size=300x300&data=${encodeURIComponent(CONTENT)}`}
+                src={QR_DISPLAY_SRC}
                 className="w-full h-full object-contain mix-blend-multiply"
                 alt="QR Code"
               />
@@ -533,6 +553,7 @@ const BillingPage: React.FC = () => {
                         navigator.clipboard.writeText(BANK_INFO.account);
                         SetCopyFeedback(true);
                         setTimeout(() => SetCopyFeedback(false), 2000);
+                        toast.success("Đã sao chép số tài khoản!");
                       }}
                       className="text-blue-600 bg-blue-50 px-3 py-1 rounded text-xs font-bold uppercase hover:bg-blue-100"
                     >
@@ -547,7 +568,7 @@ const BillingPage: React.FC = () => {
                     Tên tài khoản
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-sm font-bold text-gray-800 uppercase flex-grow">
+                    <div className="text-xl font-bold text-gray-800 uppercase flex-grow">
                       {BANK_ACCOUNTS_NAME}
                     </div>
                   </div>
@@ -567,6 +588,7 @@ const BillingPage: React.FC = () => {
                         navigator.clipboard.writeText(CONTENT);
                         SetCopyFeedback(true);
                         setTimeout(() => SetCopyFeedback(false), 2000);
+                        toast.success("Đã sao chép nội dung chuyển khoản!");
                       }}
                       className="text-blue-600 bg-blue-50 px-3 py-1 rounded text-xs font-bold uppercase hover:bg-blue-100"
                     >

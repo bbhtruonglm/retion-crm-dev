@@ -190,14 +190,18 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
    * - Nếu >= 12 tháng: lấy max (amount), không scale thêm
    */
   const AI_TRAIN_ALLOCATION = useMemo(() => {
+    /** Nếu gói dịch vụ không có số lượng huấn luyện AI, trả về 0 */
     if (!SELECTED_PACKAGE.ai_train_package_amount) return 0;
 
+    /** Số lượng huấn luyện AI cơ bản từ gói dịch vụ */
     const BASE_AMOUNT = SELECTED_PACKAGE.ai_train_package_amount;
 
+    /** Nếu số tháng đã chọn nhỏ hơn 12 */
     if (SELECTED_DURATION_MONTHS < 12) {
-      // Làm tròn
+      /** Tính toán số lượng huấn luyện AI theo tỷ lệ số tháng đã chọn và làm tròn */
       return Math.round((BASE_AMOUNT / 12) * SELECTED_DURATION_MONTHS);
     } else {
+      /** Nếu số tháng đã chọn lớn hơn hoặc bằng 12, trả về số lượng cơ bản */
       return BASE_AMOUNT;
     }
   }, [SELECTED_PACKAGE, SELECTED_DURATION_MONTHS]);
@@ -207,17 +211,31 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
   /**
    * Tính toán hiển thị text sau khi nhập mã thành công
    */
+  /**
+   * Tính toán và trả về chuỗi hiển thị sự thay đổi giá
+   * @param {number} original_price - Giá gốc
+   * @param {number} new_price - Giá mới
+   * @returns {string} - Chuỗi mô tả sự thay đổi giá
+   */
   const getPriceChangeText = (original_price: number, new_price: number) => {
+    /** Tính toán sự chênh lệch giữa giá mới và giá gốc */
     const DIFF_AMOUNT = new_price - original_price;
+
+    /** Nếu giá mới nhỏ hơn giá gốc (giảm giá) */
     if (DIFF_AMOUNT < 0) {
+      /** Trả về chuỗi "Giảm" kèm số tiền giảm */
       return `${t("pay_less", {
         defaultValue: "Giảm",
       })} ${FormatCurrency(Math.abs(DIFF_AMOUNT))}`;
     } else if (DIFF_AMOUNT > 0) {
+      /** Nếu giá mới lớn hơn giá gốc (tăng giá) */
+      /** Trả về chuỗi "Tăng" kèm số tiền tăng */
       return `${t("pay_more", {
         defaultValue: "Tăng",
       })} ${FormatCurrency(DIFF_AMOUNT)}`;
     } else {
+      /** Nếu không có sự thay đổi giá */
+      /** Trả về chuỗi rỗng */
       return "";
     }
   };
@@ -435,14 +453,19 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
       return;
     }
 
-    /** Số tiền nạp đã parse */
-    let amount = parseInt(TOPUP_AMOUNT.replace(/\D/g, ""), 10) || 0;
-    if (amount <= 0) return;
+    /** Số tiền nạp đã được phân tích cú pháp từ TOPUP_AMOUNT */
+    let parsed_amount = parseInt(TOPUP_AMOUNT.replace(/\D/g, ""), 10) || 0;
+    /** Nếu số tiền nạp nhỏ hơn hoặc bằng 0, không thực hiện tiếp */
+    if (parsed_amount <= 0) return;
 
-    // Nếu có voucher verified, dùng số tiền đã discount
+    /** Nếu có mã giảm giá đã được xác minh và số tiền chiết khấu tồn tại */
     if (DISCOUNTED_AMOUNT !== null && PROMO_CODE === VERIFIED_VOUCHER_CODE) {
-      amount = DISCOUNTED_AMOUNT;
+      /** Cập nhật số tiền giao dịch là số tiền đã được chiết khấu */
+      parsed_amount = DISCOUNTED_AMOUNT;
     }
+
+    /** Số tiền cuối cùng để tạo giao dịch */
+    const amount = parsed_amount;
 
     SetIsLoading(true);
     try {

@@ -4,8 +4,7 @@ import Header from "./components/Header";
 import CustomerInfo from "./components/CustomerInfo";
 import OrderTabs from "./components/OrderTabs";
 import PaymentOverlay from "./components/PaymentOverlay";
-import { GlassesIcon, Search } from "lucide-react";
-import { MOCK_DB } from "./constants";
+import { Search, User } from "lucide-react";
 import {
   IOrganization,
   IBankAccount,
@@ -13,6 +12,7 @@ import {
   IPaymentStep,
 } from "./types";
 import { apiService } from "./services";
+import { API_CONFIG } from "./services/api.config";
 import {
   Select,
   SelectContent,
@@ -20,8 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User } from "lucide-react";
-
 import NotFoundPage from "./pages/NotFoundPage";
 
 /**
@@ -47,8 +45,6 @@ const App: React.FC = () => {
 
   /** Token xác thực */
   const [TOKEN, SetToken] = useState<string | null>(null);
-  /** Page ID */
-  const [PAGE_ID, SetPageId] = useState<string | null>(null);
 
   /** Bước thanh toán */
   const [PAYMENT_STEP, SetPaymentStep] = useState<IPaymentStep>("idle");
@@ -138,8 +134,6 @@ const App: React.FC = () => {
 
       /** Lấy dữ liệu thô từ response */
       const RAW_DATA = RESPONSE.data;
-      /** Log dữ liệu raw để debug logic */
-      console.log("API Response:", RAW_DATA);
 
       /** Lấy danh sách tổ chức từ data trả về */
       const LIST = Array.isArray(RAW_DATA.data) ? RAW_DATA.data : [];
@@ -177,7 +171,6 @@ const App: React.FC = () => {
             (WALLET_DATA.credit_balance ?? 0) -
             (WALLET_DATA.extra_cost ?? 0) +
             (WALLET_DATA.wallet_balance ?? 0);
-          console.log("Wallet Info:", WALLET_DATA);
         }
       } catch (walletErr) {
         /** Ghi log lỗi nếu lấy ví thất bại và dùng số dư mặc định */
@@ -284,7 +277,6 @@ const App: React.FC = () => {
           CUSTOMER.orgId,
           CURRENT_TOKEN || undefined
         );
-        console.log(RES, "res");
 
         /** Nếu API trả về thành công */
         if (RES.status === 200 && RES.data) {
@@ -308,8 +300,6 @@ const App: React.FC = () => {
                   m?.user_info?.fb_staff_id === CUSTOMER?.user?.fb_staff_id
               );
             }
-
-            console.log(default_member, "default");
 
             /**
              * 2. Nếu không có user khớp, tìm ADMIN đầu tiên
@@ -343,71 +333,60 @@ const App: React.FC = () => {
   }, [CUSTOMER, CURRENT_USER, TOKEN]);
 
   /**
-   * Polling for Transaction Status
-   */
-  /**
-   * Effect Polling: Kiểm tra trạng thái giao dịch định kỳ
-   * Chạy mỗi 2s khi đang ở trạng thái Pending
+   * Effect SSE: Lắng nghe trạng thái giao dịch realtime thay cho polling
    */
   useEffect(() => {
-    /** Khởi tạo biến interval nội bộ */
-    let interval: NodeJS.Timeout;
-    const AUTH_TOKEN = localStorage.getItem("auth_token");
+    /** Chỉ chạy khi đang Pending và có mã giao dịch */
+    if (PAYMENT_STEP !== "pending" || !PAYMENT_DETAILS?.content) return;
 
-    /** Chỉ chạy khi đang Pending và có đủ thông tin nội dung/org */
-    if (
-      PAYMENT_STEP === "pending" &&
-      PAYMENT_DETAILS?.content &&
-      CUSTOMER?.orgId &&
-      AUTH_TOKEN
-    ) {
-      /** Setup interval gọi API mỗi 2 giây */
-      interval = setInterval(async () => {
-        try {
-          /** Gọi API check transaction trạng thái mới nhất */
-          const RES = await apiService.CheckTransaction(
-            {
-              org_id: CUSTOMER.orgId,
-              txn_id: PAYMENT_DETAILS.content,
-              bank_name: "BBH_TCB",
-              version: "v2",
-            },
-            AUTH_TOKEN
-          );
+    const TXN_ID = PAYMENT_DETAILS.content;
+    /** Đường dẫn SSE public */
+    const SSE_URL = `${API_CONFIG.BILLING_URL}/public/transaction/read_txn?txn_id=${TXN_ID}`;
 
-          /** Nếu API trả về OK */
-          if (RES.status === 200 && RES.data) {
-            const RESULT = RES.data;
-            /** Kiểm tra flag thành công từ data */
-            const IS_SUCCESS =
-              RESULT.data === true || RESULT.data?.status === "SUCCESS";
+    let eventSource: EventSource | null = new EventSource(SSE_URL);
 
-            /** Nếu giao dịch thành công */
-            if (IS_SUCCESS) {
-              /** Chuyển state sang success để update UI */
-              SetPaymentStep("success");
-              /** Dừng polling ngay lập tức */
-              clearInterval(interval);
-              /** Làm mới thông tin (bao gồm ví) để hiển thị số dư mới */
-              PerformSearch(CUSTOMER.orgId);
-            }
+    eventSource.onmessage = (event) => {
+      try {
+        const DATA = JSON.parse(event.data);
+        /** Kiểm tra trạng thái thành công */
+        const IS_SUCCESS =
+          DATA.status === "SUCCESS" ||
+          DATA.success === true ||
+          DATA.txn_status === "SUCCESS";
+
+        /** Nếu giao dịch thành công */
+        if (IS_SUCCESS) {
+          /** Chuyển state sang success */
+          SetPaymentStep("success");
+          /** Làm mới thông tin khách hàng */
+          if (CUSTOMER?.orgId) {
+            PerformSearch(CUSTOMER.orgId);
           }
-        } catch (e) {
-          /** Log lỗi polling (không show toast để tránh spam) */
-          console.error("Polling error", e);
+          /** Đóng kết nối */
+          eventSource?.close();
+          eventSource = null;
+        } else if (DATA.error === "TXN_NOT_FOUND") {
+          console.error("Transaction not found via SSE");
         }
-      }, 2000);
-    }
-
-    /** Cleanup function: xóa interval khi unmount hoặc deps thay đổi */
-    return () => {
-      if (interval) clearInterval(interval);
+      } catch (e) {
+        console.error("SSE Parse Message Error", e);
+      }
     };
-  }, [PAYMENT_STEP, PAYMENT_DETAILS, CUSTOMER]);
 
-  /**
-   * Effect xử lý debounce tìm kiếm
-   */
+    eventSource.onerror = (err) => {
+      console.error("SSE Connection Error", err);
+      // EventSource tự động retry khi mất kết nối
+    };
+
+    /** Cleanup khi unmount hoặc đổi state */
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+    };
+  }, [PAYMENT_STEP, PAYMENT_DETAILS?.content]);
+
   /**
    * Effect xử lý debounce tìm kiếm
    * Giúp giảm tải request API khi user đang gõ phím liên tục
@@ -470,15 +449,9 @@ const App: React.FC = () => {
 
   /**
    * Xử lý đóng modal overlay
-   * Có confirm nếu đang trong quá trình thanh toán
+   * Logic confirm đã được chuyển vào trong PaymentOverlay component
    */
   const HandleCloseModal = () => {
-    /** Nếu đang pending (đang chờ quét mã), hỏi user trước khi thoát */
-    if (PAYMENT_STEP === "pending") {
-      /** Xác nhận người dùng */
-      const CONFIRM = window.confirm(t("confirm_cancel_pending"));
-      if (!CONFIRM) return;
-    }
     /** Reset về trạng thái rảnh rỗi */
     SetPaymentStep("idle");
     SetPaymentDetails(null);
