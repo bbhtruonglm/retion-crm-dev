@@ -106,7 +106,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
   // },
   /** Gói chính thức */
   {
-    id: "lite",
+    id: "LITE",
     name: "Gói LITE",
     price: 199000,
     type: IPackageType.SUBSCRIPTION,
@@ -122,7 +122,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 10 * 60,
   },
   {
-    id: "pro",
+    id: "PRO",
     name: "Gói PRO",
     price: 480000,
     type: IPackageType.SUBSCRIPTION,
@@ -138,7 +138,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 10 * 60,
   },
   {
-    id: "pro_2",
+    id: "PRO_2",
     name: "Gói PRO 2",
     price: 960000,
     type: IPackageType.SUBSCRIPTION,
@@ -154,7 +154,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 10 * 60,
   },
   {
-    id: "pro_2x",
+    id: "PRO_2X",
     name: "Gói PRO 2X",
     price: 960000,
     type: IPackageType.SUBSCRIPTION,
@@ -170,7 +170,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 20 * 60,
   },
   {
-    id: "pro_3x",
+    id: "PRO_3X",
     name: "Gói PRO 3X",
     price: 1440000,
     type: IPackageType.SUBSCRIPTION,
@@ -186,7 +186,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 30 * 60,
   },
   {
-    id: "milk_1",
+    id: "MILK_1",
     name: "Gói MILK 1",
     price: 199000,
     type: IPackageType.SUBSCRIPTION,
@@ -202,7 +202,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 10 * 60,
   },
   {
-    id: "business",
+    id: "BUSINESS",
     name: "Gói BUSINESS",
     price: 2600000,
     type: IPackageType.SUBSCRIPTION,
@@ -219,7 +219,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
   },
   /** Gói không giới hạn */
   {
-    id: "unlimited_25",
+    id: "UNLIMITED_25",
     name: "Gói UNLIMITED 25M",
     price: 25000000,
     type: IPackageType.SUBSCRIPTION,
@@ -235,7 +235,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 10 * 60,
   },
   {
-    id: "unlimited_40",
+    id: "UNLIMITED_40",
     name: "Gói UNLIMITED 40M",
     price: 40000000,
     type: IPackageType.SUBSCRIPTION,
@@ -251,7 +251,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 10 * 60,
   },
   {
-    id: "unlimited_85",
+    id: "UNLIMITED_85",
     name: "Gói UNLIMITED 85M",
     price: 85000000,
     type: IPackageType.SUBSCRIPTION,
@@ -268,7 +268,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
   },
   /** Gói của a Tiến */
   {
-    id: "chatbot_ai_base",
+    id: "CHATBOT_AI_BASE",
     name: "Gói CHATBOT AI BASE",
     price: 31200000,
     type: IPackageType.SUBSCRIPTION,
@@ -284,7 +284,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 5000 * 60,
   },
   {
-    id: "chatbot_ai_business_1_4",
+    id: "CHATBOT_AI_BUSINESS_1_4",
     name: "Gói CHATBOT AI BUSINESS 1/4",
     price: 19200000,
     type: IPackageType.SUBSCRIPTION,
@@ -300,7 +300,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 5000 * 60,
   },
   {
-    id: "chatbot_ai_business",
+    id: "CHATBOT_AI_BUSINESS",
     name: "Gói CHATBOT AI BUSINESS",
     price: 76800000,
     type: IPackageType.SUBSCRIPTION,
@@ -316,7 +316,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 20000 * 60,
   },
   {
-    id: "chatbot_ai_pro",
+    id: "CHATBOT_AI_PRO",
     name: "Gói CHATBOT AI PRO",
     price: 161280000,
     type: IPackageType.SUBSCRIPTION,
@@ -332,7 +332,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 4000 * 60,
   },
   {
-    id: "chatbot_ai_enterprise",
+    id: "CHATBOT_AI_ENTERPRISE",
     name: "Gói CHATBOT AI ENTERPRISE",
     price: 382920000,
     type: IPackageType.SUBSCRIPTION,
@@ -349,7 +349,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
   },
   /** Gói BOT cũ */
   {
-    id: "chatbot_unlimited_1_year",
+    id: "CHATBOT_UNLIMITED_1_YEAR",
     name: "Gói CHATBOT UNLIMITED 1 NĂM",
     price: 25000000,
     type: IPackageType.SUBSCRIPTION,
@@ -365,7 +365,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 0,
   },
   {
-    id: "chatbot_unlimited_n_year",
+    id: "CHATBOT_UNLIMITED_N_YEAR",
     name: "Gói CHATBOT UNLIMITED VĨNH VIỄN",
     price: 25000000,
     type: IPackageType.SUBSCRIPTION,
@@ -381,7 +381,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 0,
   },
   {
-    id: "chatbot_marketing_1_year",
+    id: "CHATBOT_MARKETING_1_YEAR",
     name: "Gói CHATBOT MARKETING 1 NĂM",
     price: 3480000,
     type: IPackageType.SUBSCRIPTION,
@@ -397,7 +397,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiVideo: 0,
   },
   {
-    id: "chatbot_loyalty_1_year",
+    id: "CHATBOT_LOYALTY_1_YEAR",
     name: "Gói CHATBOT LOYALTY 1 NĂM",
     price: 6708000,
     type: IPackageType.SUBSCRIPTION,
@@ -414,7 +414,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
   },
   /** Gói của Tuấn */
   {
-    id: "business_tuan_giay_big_size",
+    id: "BUSINESS_TUAN_GIAY_BIG_SIZE",
     name: "Gói BUSINESS TUẤN GIÀY BIG SIZE",
     price: 4160000,
     type: IPackageType.SUBSCRIPTION,
