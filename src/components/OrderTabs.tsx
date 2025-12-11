@@ -182,6 +182,26 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
       currency: "VND",
     }).format(val);
 
+  /**
+   * Tính phân bổ huấn luyện AI
+   * Logic:
+   * - Mặc định 12 tháng
+   * - Nếu < 12 tháng: tính theo tỉ lệ (amount / 12 * duration)
+   * - Nếu >= 12 tháng: lấy max (amount), không scale thêm
+   */
+  const AI_TRAIN_ALLOCATION = useMemo(() => {
+    if (!SELECTED_PACKAGE.ai_train_package_amount) return 0;
+
+    const BASE_AMOUNT = SELECTED_PACKAGE.ai_train_package_amount;
+
+    if (SELECTED_DURATION_MONTHS < 12) {
+      // Làm tròn
+      return Math.round((BASE_AMOUNT / 12) * SELECTED_DURATION_MONTHS);
+    } else {
+      return BASE_AMOUNT;
+    }
+  }, [SELECTED_PACKAGE, SELECTED_DURATION_MONTHS]);
+
   // -- HANDLERS --
 
   /**
@@ -504,6 +524,10 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
             ...(PROMO_CODE && PROMO_CODE === VERIFIED_VOUCHER_CODE
               ? { voucher_code: PROMO_CODE }
               : {}),
+            /** Thêm meta phân bổ AI training nếu có */
+            ...(AI_TRAIN_ALLOCATION > 0
+              ? { ai_train_package_amount: AI_TRAIN_ALLOCATION }
+              : {}),
           },
           TOKEN
         );
@@ -565,6 +589,10 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
         type: "PURCHASE",
         product: SELECTED_PACKAGE.id,
         quantity: SELECTED_DURATION.months,
+        /** Thêm meta phân bổ AI training nếu có - lưu vào meta của transaction */
+        ...(AI_TRAIN_ALLOCATION > 0
+          ? { ai_train_package_amount: AI_TRAIN_ALLOCATION }
+          : {}),
       });
 
       SetIsLoading(false);
@@ -963,7 +991,43 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
                 </div>
               </div>
             </div>
-
+            <div className="mt-8">
+              {/* AI TRAINING ALLOCATION INFO */}
+              {AI_TRAIN_ALLOCATION > 0 && (
+                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl flex items-center justify-between shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                      <Info className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-lg">
+                        Phân bổ huấn luyện AI
+                      </h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Ngân sách huấn luyện AI dành riêng cho doanh nghiệp
+                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-bold">
+                          {SELECTED_DURATION_MONTHS < 12
+                            ? "Theo tỉ lệ tháng"
+                            : "Full gói 1 năm"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-extrabold text-blue-700">
+                      {FormatCurrency(AI_TRAIN_ALLOCATION)}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 font-medium">
+                      {SELECTED_DURATION_MONTHS < 12
+                        ? `Đã tính theo ${SELECTED_DURATION_MONTHS} tháng`
+                        : "Mức hỗ trợ tối đa"}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
             {/* 3. ACTION BUTTON */}
             <div className="mt-8">
               {BUY_NEEDED_AMOUNT > 0 ? (

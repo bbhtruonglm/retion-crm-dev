@@ -136,6 +136,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 1000,
     aiSound: 1000 * 60,
     aiVideo: 10 * 60,
+    ai_train_package_amount: 2304000,
   },
   {
     id: "PRO_2",
@@ -168,6 +169,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 2000,
     aiSound: 2000 * 60,
     aiVideo: 20 * 60,
+    ai_train_package_amount: 2304000,
   },
   {
     id: "PRO_3X",
@@ -184,6 +186,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 3000,
     aiSound: 3000 * 60,
     aiVideo: 30 * 60,
+    ai_train_package_amount: 2304000,
   },
   {
     id: "MILK_1",
@@ -216,6 +219,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 10000,
     aiSound: 10000 * 60,
     aiVideo: 100 * 60,
+    ai_train_package_amount: 6240000,
   },
   /** Gói không giới hạn */
   {
@@ -233,6 +237,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 1000,
     aiSound: 100 * 60,
     aiVideo: 10 * 60,
+    ai_train_package_amount: 6240000,
   },
   {
     id: "UNLIMITED_40",
@@ -249,6 +254,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 1000,
     aiSound: 100 * 60,
     aiVideo: 10 * 60,
+    ai_train_package_amount: 6240000,
   },
   {
     id: "UNLIMITED_85",
@@ -265,6 +271,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 1000,
     aiSound: 100 * 60,
     aiVideo: 10 * 60,
+    ai_train_package_amount: 10800000,
   },
   /** Gói của a Tiến */
   {
@@ -282,6 +289,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 50000,
     aiSound: 50000 * 60,
     aiVideo: 5000 * 60,
+    ai_train_package_amount: 6240000,
   },
   {
     id: "CHATBOT_AI_BUSINESS_1_4",
@@ -298,6 +306,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 50000,
     aiSound: 50000,
     aiVideo: 5000 * 60,
+    ai_train_package_amount: 1560000, // Giá trị gói train AI của gói CHATBOT AI BUSINESS 1/4
   },
   {
     id: "CHATBOT_AI_BUSINESS",
@@ -314,6 +323,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 200000,
     aiSound: 200000,
     aiVideo: 20000 * 60,
+    ai_train_package_amount: 10800000,
   },
   {
     id: "CHATBOT_AI_PRO",
@@ -330,6 +340,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 40000,
     aiSound: 40000 * 60,
     aiVideo: 4000 * 60,
+    ai_train_package_amount: 10800000,
   },
   {
     id: "CHATBOT_AI_ENTERPRISE",
@@ -346,6 +357,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 60000,
     aiSound: 60000 * 60,
     aiVideo: 6000 * 60,
+    ai_train_package_amount: 10800000,
   },
   /** Gói BOT cũ */
   {
@@ -428,6 +440,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 15000,
     aiSound: 15000 * 60,
     aiVideo: 150 * 60,
+    ai_train_package_amount: 6240000,
   },
 ];
 

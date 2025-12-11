@@ -140,6 +140,8 @@ export interface IServicePackage {
   aiSound?: number;
   /** Số phút video AI */
   aiVideo?: number;
+  /** Phân bổ huấn luyện AI */
+  ai_train_package_amount?: number;
 }
 
 /**
