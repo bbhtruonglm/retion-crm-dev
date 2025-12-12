@@ -153,6 +153,7 @@ export const SUBSCRIPTION_PACKAGES: IServicePackage[] = [
     aiImage: 1000,
     aiSound: 1000 * 60,
     aiVideo: 10 * 60,
+    ai_train_package_amount: 2304000,
   },
   {
     id: "PRO_2X",
