@@ -1,18 +1,18 @@
-import React, { useEffect, useState, useRef } from "react";
-import { useTranslation } from "react-i18next";
-import { apiService } from "../services";
 import {
-  Loader2,
-  CheckCircle,
-  X,
-  QrCode,
-  Image as ImageIcon,
+  AlertCircle,
   ArrowLeft,
+  CheckCircle,
+  Image as ImageIcon,
+  Loader2,
+  QrCode,
+  X,
 } from "lucide-react";
-import { API_CONFIG } from "../services/api.config";
-import RetionLogo from "../assets/icons/Logo_retion_embed.png";
+import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import RetionLogoFull from "../assets/icons/Logo_Full.png";
+import RetionLogo from "../assets/icons/Logo_retion_embed.png";
 import { BANK_ACCOUNTS, BANK_ACCOUNTS_NAME } from "../constants";
+import { API_CONFIG } from "../services/api.config";
 
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -35,6 +35,8 @@ const BillingPage: React.FC = () => {
   const [TRANSACTION, SetTransaction] = useState<any>(null);
   /** State lưu trạng thái copy (không dùng nhưng giữ lại nếu cần mở rộng) */
   const [COPY_FEEDBACK, SetCopyFeedback] = useState(false);
+  /** State hiển thị lỗi merchant (không có QR) */
+  const [SHOW_MERCHANT_ERROR, SetShowMerchantError] = useState(false);
 
   /** Ref để theo dõi lần load đầu tiên */
   const IS_FIRST_LOAD = useRef(true);
@@ -114,6 +116,14 @@ const BillingPage: React.FC = () => {
             txn_code:
               MERCHANT_TXN.receiver?.transaction_content || TRANS_DATA.txn_id,
           });
+
+          /** Kiểm tra nếu không có QR code -> Báo lỗi merchant chưa kết nối */
+          if (!MERCHANT_TXN.qr_code) {
+            SetShowMerchantError(true);
+            if (!IS_FIRST_LOAD.current) {
+              toast.error("Không thể tạo QR. Vui lòng thử lại sau.");
+            }
+          }
 
           /** Kiểm tra trạng thái thành công */
           const IS_SUCCESS =
@@ -267,9 +277,13 @@ const BillingPage: React.FC = () => {
     /** Nếu chưa có transaction thì return */
     if (!TRANSACTION) return;
     try {
-      /** Lấy dữ liệu QR (ưu tiên chuỗi QR code từ server) */
-      const QR_RAW =
-        TRANSACTION.qr_code || TRANSACTION.txn_code || TRANSACTION.txn_id;
+      /** Lấy dữ liệu QR (Không fallback sang content nếu lỗi) */
+      const QR_RAW = TRANSACTION?.qr_code;
+
+      if (!QR_RAW) {
+        toast.error("Không tìm thấy mã QR để tải xuống.");
+        return;
+      }
 
       /** Kiểm tra nếu chuỗi là URL ảnh */
       const IS_URL = /^(http|https|data:image)/.test(QR_RAW);
@@ -364,12 +378,14 @@ const BillingPage: React.FC = () => {
   /** Thông tin bank */
   const BANK_INFO = TRANSACTION.bank_info || BANK_ACCOUNTS.BBH;
 
-  /** Dữ liệu raw cho QR code */
-  const QR_RAW_VAL = TRANSACTION.qr_code || CONTENT;
+  /** Dữ liệu raw cho QR code (Không fallback) */
+  const QR_RAW_VAL = TRANSACTION.qr_code;
   /** Kiểm tra xem là URL hay data string */
-  const IS_QR_URL = /^(http|https|data:image)/.test(QR_RAW_VAL);
+  const IS_QR_URL = /^(http|https|data:image)/.test(QR_RAW_VAL || "");
   /** URL hiển thị QR code */
-  const QR_DISPLAY_SRC = IS_QR_URL
+  const QR_DISPLAY_SRC = !QR_RAW_VAL
+    ? ""
+    : IS_QR_URL
     ? QR_RAW_VAL
     : `${
         API_CONFIG.QR_SERVICE_URL ||
@@ -648,6 +664,34 @@ const BillingPage: React.FC = () => {
       <div className="mt-8 text-center text-gray-400 text-sm">
         &copy; {new Date().getFullYear()} Retion CRM. All rights reserved.
       </div>
+
+      {/* Modal báo lỗi Merchant không kết nối */}
+      {SHOW_MERCHANT_ERROR && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 text-center transform transition-all scale-100">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Lỗi tạo mã QR
+            </h3>
+            <p className="text-gray-500 mb-6">
+              Có lỗi xảy ra khi tạo mã QR.
+              <br />
+              Có thể tài khoản chưa được kết nối với Merchant.
+            </p>
+            <button
+              onClick={() => {
+                // Có thể đóng modal hoặc redirect
+                SetShowMerchantError(false);
+              }}
+              className="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-colors"
+            >
+              Đã hiểu
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

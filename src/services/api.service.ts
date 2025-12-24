@@ -182,9 +182,9 @@ class ApiService {
     data: {
       skip: number;
       limit: number;
-      search: string;
       start_date: string | null;
       end_date: string | null;
+      org_id: string;
     },
     token?: string
   ): Promise<IApiResponse> {

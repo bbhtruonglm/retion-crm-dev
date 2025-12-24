@@ -1,16 +1,3 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { IOrganization, ITabType } from "../types";
-import { MOCK_PACKAGES, MOCK_DURATIONS, BANK_ACCOUNTS } from "../constants";
-import { toast } from "react-toastify";
-import {
-  Wallet,
-  Package,
-  Check,
-  ChevronDown,
-  Info,
-  QrCode,
-} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -18,9 +5,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AlertCircle, Check, Info, Package, Wallet } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
+import { BANK_ACCOUNTS, MOCK_DURATIONS, MOCK_PACKAGES } from "../constants";
 import { apiService } from "../services";
+import { IBankAccount, IOrganization, ITabType } from "../types";
 import InvoiceEditor from "./InvoiceEditor";
-import { IBankAccount } from "../types";
 
 export interface IOrderTabsProps {
   /** Khách hàng hiện tại */
@@ -92,6 +84,9 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
   const [VERIFY_VOUCHER_RESULT, SetVerifyVoucherResult] = useState<any>(null);
   const [VERIFIED_VOUCHER_CODE, SetVerifiedVoucherCode] = useState<string>("");
   const [IS_VERIFYING_VOUCHER, SetIsVerifyingVoucher] = useState(false);
+  /** State show modal lỗi merchant */
+  const [SHOW_MERCHANT_ERROR_MODAL, SetShowMerchantErrorModal] =
+    useState(false);
 
   // Reset voucher when active tab changes
   useEffect(() => {
@@ -404,33 +399,46 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
         TOKEN
       );
 
-      if (QR_RES.status === 200 && QR_RES.data) {
-        const RESP_DATA = QR_RES.data.data || QR_RES.data;
+      if (QR_RES.status !== 200 || !QR_RES.data) {
+        /** Nếu API lỗi -> Throw luôn để catch block xử lý hiển thị dialog */
+        throw new Error("MERCHANT_ERROR");
+      }
 
-        /** QR DATA string */
-        const QR_DATA = RESP_DATA.qr_code;
-        if (typeof QR_DATA === "string") {
-          qr_string = QR_DATA;
-        }
+      const RESP_DATA = QR_RES.data.data || QR_RES.data;
 
-        /** Parse Receiver Info if available (v3) API trả về thông tin tài khoản đích */
-        if (RESP_DATA.receiver) {
-          const { account_number, bank_name, transaction_content } =
-            RESP_DATA.receiver;
-          // Construct dynamic bank info
-          // Preserve static name/bin from BBH default or map if needed.
-          // Here we update account and bank name from response.
-          /** Cập nhật thông tin ngân hàng động từ phản hồi VietQR */
-          dynamic_bank_info = {
-            ...BANK_ACCOUNTS.BBH,
-            account: account_number || BANK_ACCOUNTS.BBH.account,
-            bank: bank_name || BANK_ACCOUNTS.BBH.bank,
-            code: transaction_content || TXN_CODE,
-          };
-        }
+      /** QR DATA string */
+      const QR_DATA = RESP_DATA.qr_code;
+      if (typeof QR_DATA === "string") {
+        qr_string = QR_DATA;
+      } else {
+        // Nếu không có qr_code trong data trả về
+        throw new Error("MERCHANT_ERROR");
+      }
+
+      /** Parse Receiver Info if available (v3) API trả về thông tin tài khoản đích */
+      if (RESP_DATA.receiver) {
+        const { account_number, bank_name, transaction_content } =
+          RESP_DATA.receiver;
+        // Construct dynamic bank info
+        // Preserve static name/bin from BBH default or map if needed.
+        // Here we update account and bank name from response.
+        /** Cập nhật thông tin ngân hàng động từ phản hồi VietQR */
+        dynamic_bank_info = {
+          ...BANK_ACCOUNTS.BBH,
+          account: account_number || BANK_ACCOUNTS.BBH.account,
+          bank: bank_name || BANK_ACCOUNTS.BBH.bank,
+          code: transaction_content || TXN_CODE,
+        };
       }
     } catch (e) {
       console.error("Failed to generate QR", e);
+      if (e instanceof Error && e.message === "MERCHANT_ERROR") {
+        /** Ném tiếp lỗi này ra ngoài để HandleCreateQrTopup/Package bắt được */
+        throw e;
+      }
+      // Các lỗi khác có thể bỏ qua hoặc xử lý tùy ý, nhưng ở đây yêu cầu nghiêm ngặt
+      // nên nếu fail QR thì coi như fail transaction flow này luôn
+      throw new Error("MERCHANT_ERROR");
     }
 
     return { code: TXN_CODE, qr: qr_string, bank: dynamic_bank_info };
@@ -478,11 +486,15 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
       on_initiate_payment(amount, code, undefined, undefined, qr, bank);
     } catch (error) {
       console.error(error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : t("error_occurred", { defaultValue: "Có lỗi xảy ra" })
-      );
+      if (error instanceof Error && error.message === "MERCHANT_ERROR") {
+        SetShowMerchantErrorModal(true);
+      } else {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t("error_occurred", { defaultValue: "Có lỗi xảy ra" })
+        );
+      }
     } finally {
       SetIsLoading(false);
     }
@@ -630,11 +642,15 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
       );
     } catch (error) {
       console.error(error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : t("error_occurred", { defaultValue: "Có lỗi xảy ra" })
-      );
+      if (error instanceof Error && error.message === "MERCHANT_ERROR") {
+        SetShowMerchantErrorModal(true);
+      } else {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t("error_occurred", { defaultValue: "Có lỗi xảy ra" })
+        );
+      }
     } finally {
       SetIsLoading(false);
     }
@@ -1106,6 +1122,32 @@ const OrderTabs: React.FC<IOrderTabsProps> = ({
           </div>
         )}
       </div>
+      {/* Modal báo lỗi Merchant không kết nối */}
+      {SHOW_MERCHANT_ERROR_MODAL && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 text-center transform transition-all scale-100">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Lỗi tạo mã QR
+            </h3>
+            <p className="text-gray-500 mb-6">
+              Có lỗi xảy ra khi tạo mã QR.
+              <br />
+              Có thể tài khoản chưa được kết nối với Merchant.
+            </p>
+            <button
+              onClick={() => {
+                SetShowMerchantErrorModal(false);
+              }}
+              className="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-colors"
+            >
+              Đã hiểu
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

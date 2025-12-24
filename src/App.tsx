@@ -118,9 +118,9 @@ const App: React.FC = () => {
         {
           skip: 0,
           limit: 20,
-          search: query,
           start_date: null,
           end_date: null,
+          org_id: query,
         },
         CURRENT_TOKEN
       );
@@ -464,7 +464,7 @@ const App: React.FC = () => {
      * 1. Không có token/user (CURRENT_USER là null)
      * 2. Có user nhưng role không phải ADMIN hoặc STAFF
      */
-    if (!CURRENT_USER || !["ADMIN", "STAFF"].includes(CURRENT_USER.role)) {
+    if (!CURRENT_USER || !["ADMIN", "MEMBER"].includes(CURRENT_USER.role)) {
       return <NotFoundPage />;
     }
   }
